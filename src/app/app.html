@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="light dark">
+  <title>Social Media Post Accessibility Checker — Report</title>
+  <style>
+    /* ── Tim Dixon brand palette ──────────────────────────────────── */
+    :root {
+      --navy:   #061528;
+      --orange: #FF7C00;
+      --blue:   #63D2FF;
+
+      /* Light-mode tokens */
+      --bg:            #f4f6f8;
+      --bg-card:       #ffffff;
+      --fg:            #1a1a1a;
+      --fg-muted:      #4b5563;
+      --border:        #d1d5db;
+      --accent:        #061528;
+      --accent-hover:  #0a2445;
+      --accent-text:   #ffffff;
+      --accent-subtle: rgba(6, 21, 40, 0.08);
+      --pass:          #14532d;
+      --pass-bg:       #dcfce7;
+      --fail:          #7f1d1d;
+      --fail-bg:       #fee2e2;
+      --flag:          #7c2d12;
+      --flag-bg:       #ffedd5;
+      --neutral:       #4b5563;
+      --neutral-bg:    #f0f2f5;
+      --code-bg:       #f0f2f5;
+      --radius:        10px;
+      --shadow:        0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    /* Dark via OS preference (unless manually overridden to light) */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg:            #061528;
+        --bg-card:       #0d2040;
+        --fg:            #ffffff;
+        --fg-muted:      #63D2FF;
+        --border:        #1a3050;
+        --accent:        #FF7C00;
+        --accent-hover:  #ff8f1a;
+        --accent-text:   #061528;
+        --accent-subtle: rgba(255, 124, 0, 0.14);
+        --pass:          #4ade80;
+        --pass-bg:       rgba(21, 128, 61, 0.22);
+        --fail:          #fca5a5;
+        --fail-bg:       rgba(185, 28, 28, 0.22);
+        --flag:          #fdba74;
+        --flag-bg:       rgba(194, 65, 12, 0.22);
+        --neutral:       #63D2FF;
+        --neutral-bg:    #1a3050;
+        --code-bg:       #1a3050;
+      }
+    }
+
+    /* Dark via manual toggle */
+    :root[data-theme="dark"] {
+      --bg:            #061528;
+      --bg-card:       #0d2040;
+      --fg:            #ffffff;
+      --fg-muted:      #63D2FF;
+      --border:        #1a3050;
+      --accent:        #FF7C00;
+      --accent-hover:  #ff8f1a;
+      --accent-text:   #061528;
+      --accent-subtle: rgba(255, 124, 0, 0.14);
+      --pass:          #4ade80;
+      --pass-bg:       rgba(21, 128, 61, 0.22);
+      --fail:          #fca5a5;
+      --fail-bg:       rgba(185, 28, 28, 0.22);
+      --flag:          #fdba74;
+      --flag-bg:       rgba(194, 65, 12, 0.22);
+      --neutral:       #63D2FF;
+      --neutral-bg:    #1a3050;
+      --code-bg:       #1a3050;
+    }
+
+    /* Light via manual toggle */
+    :root[data-theme="light"] {
+      --bg:            #f4f6f8;
+      --bg-card:       #ffffff;
+      --fg:            #1a1a1a;
+      --fg-muted:      #4b5563;
+      --border:        #d1d5db;
+      --accent:        #061528;
+      --accent-hover:  #0a2445;
+      --accent-text:   #ffffff;
+      --accent-subtle: rgba(6, 21, 40, 0.08);
+      --pass:          #14532d;
+      --pass-bg:       #dcfce7;
+      --fail:          #7f1d1d;
+      --fail-bg:       #fee2e2;
+      --flag:          #7c2d12;
+      --flag-bg:       #ffedd5;
+      --neutral:       #4b5563;
+      --neutral-bg:    #f0f2f5;
+      --code-bg:       #f0f2f5;
+    }
+
+    [hidden] { display: none !important; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+    }
+    a { color: var(--accent); }
+    a:hover { color: var(--accent-hover); text-decoration: underline; }
+    :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+    /* ── Skip link ────────────────────────────────────────────────── */
+    .skip-link {
+      position: absolute;
+      top: -50px;
+      left: 16px;
+      background: var(--accent);
+      color: var(--accent-text);
+      padding: 10px 16px;
+      border-radius: 0 0 8px 8px;
+      font-weight: 700;
+      z-index: 9999;
+      text-decoration: none;
+      transition: top 120ms;
+    }
+    .skip-link:focus { top: 0; outline: 3px solid #FF7C00; outline-offset: 2px; }
+
+    /* ── Header — always navy regardless of light/dark ────────────── */
+    .app-header {
+      background: #061528;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+    }
+    .app-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #FF7C00, #ff8f1a 60%, transparent);
+      pointer-events: none;
+    }
+    .app-header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.2rem 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      position: relative;
+    }
+    .app-header-text { flex: 1; min-width: 0; }
+    .app-header h1 {
+      color: #ffffff;
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin: 0 0 3px;
+      letter-spacing: -0.3px;
+    }
+    .header-accent { color: #FF7C00; }
+    .app-header .tagline { color: #63D2FF; margin: 0; font-size: 0.8rem; }
+
+    /* ── Theme toggle ─────────────────────────────────────────────── */
+    .theme-toggle {
+      appearance: none;
+      background: transparent;
+      border: 2px solid rgba(255,255,255,0.35);
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 8px 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: border-color 120ms, background 120ms;
+      flex-shrink: 0;
+      min-height: 44px;
+      min-width: 44px;
+    }
+    .theme-toggle:hover { border-color: #63D2FF; background: rgba(99,210,255,0.12); }
+    .theme-toggle:focus-visible { outline: 3px solid #63D2FF; outline-offset: 3px; }
+    .theme-toggle:active { transform: translateY(1px); }
+
+    /* Icon visibility — show moon in light mode, sun in dark mode */
+    .icon-sun  { display: none; }
+    .icon-moon { display: none; }
+    [data-theme="dark"]  .icon-sun  { display: block; }
+    [data-theme="light"] .icon-moon { display: block; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .icon-sun  { display: block; }
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"])  .icon-moon { display: block; }
+    }
+
+    /* ── Centered page container (mirrors sister project #app) ───── */
+    .page-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px 48px;
+    }
+
+    /* ── Disclaimer ───────────────────────────────────────────────── */
+    #disclaimer {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 14px;
+      background: var(--neutral-bg);
+      border-left: 4px solid var(--orange);
+      border-radius: 6px;
+      font-size: 0.82rem;
+      color: var(--fg-muted);
+      margin: 16px 0 0;
+      line-height: 1.5;
+    }
+    #disclaimer svg { flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Status bar ───────────────────────────────────────────────── */
+    #status-bar {
+      background: var(--accent-subtle);
+      border-left: 4px solid var(--accent);
+      padding: 10px 16px;
+      margin: 12px 0 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 13px;
+      color: var(--fg);
+    }
+    #status-bar.error { background: var(--fail-bg); border-color: var(--fail); color: var(--fail); }
+    #status-bar.done  { background: var(--pass-bg); border-color: var(--pass); color: var(--pass); }
+
+    /* ── Progress ─────────────────────────────────────────────────── */
+    #progress-wrap { padding: 10px 0 4px; display: none; }
+    #progress-wrap.visible { display: block; }
+    #progress-label { font-size: 12px; color: var(--fg-muted); margin: 0 0 5px; }
+    #progress-bar {
+      width: 100%; height: 8px;
+      -webkit-appearance: none; appearance: none;
+      border-radius: 4px; overflow: hidden;
+    }
+    #progress-bar::-webkit-progress-bar   { background: var(--neutral-bg); border-radius: 4px; }
+    #progress-bar::-webkit-progress-value { background: var(--accent); border-radius: 4px; transition: width 0.3s; }
+
+    /* ── Main layout ──────────────────────────────────────────────── */
+    main { padding: 16px 0 0; }
+
+    /* ── Post card ────────────────────────────────────────────────── */
+    .post-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    .post-card h2 { font-size: 1rem; margin: 0 0 4px; font-weight: 700; }
+    .post-meta { font-size: 12px; color: var(--fg-muted); margin-bottom: 10px; }
+    .post-text {
+      font-size: 13px; white-space: pre-wrap;
+      background: var(--neutral-bg); border-left: 3px solid var(--border);
+      color: var(--fg); padding: 8px 12px; margin: 0 0 14px;
+      max-height: 130px; overflow-y: auto; border-radius: 0 4px 4px 0;
+    }
+    h3 { font-size: 0.9rem; margin: 16px 0 6px; font-weight: 700; }
+    h4 { font-size: 0.85rem; margin: 12px 0 4px; font-weight: 600; }
+
+    /* ── Tables ───────────────────────────────────────────────────── */
+    .summary-table, .contrast-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .summary-table { font-size: 13px; margin-bottom: 16px; }
+    .contrast-table { font-size: 12px; margin: 8px 0; }
+    .summary-table th, .summary-table td,
+    .contrast-table th, .contrast-table td {
+      border-bottom: 1px solid var(--border);
+      padding: 8px 10px; text-align: left;
+      vertical-align: middle; color: var(--fg);
+    }
+    .summary-table th, .contrast-table th {
+      background: var(--neutral-bg); font-weight: 700;
+    }
+    .summary-table th { width: 50%; }
+    .summary-table tr:last-child td,
+    .contrast-table tr:last-child td { border-bottom: none; }
+    .contrast-table code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+    .contrast-table .pass { color: var(--pass); font-weight: 700; }
+    .contrast-table .fail { color: var(--fail); font-weight: 700; }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* ── Badges ───────────────────────────────────────────────────── */
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 999px; font-size: 11px; font-weight: 700;
+    }
+    .badge-pass { background: var(--pass-bg); color: var(--pass); }
+    .badge-fail { background: var(--fail-bg); color: var(--fail); }
+    .badge-flag { background: var(--flag-bg); color: var(--flag); }
+    .badge-na   { background: var(--neutral-bg); color: var(--neutral); }
+    .badge-overall {
+      font-size: 12px; padding: 4px 14px; border-radius: 999px;
+      font-weight: 700; margin-bottom: 8px; display: inline-block;
+    }
+    .badge-overall.badge-pass { background: var(--pass-bg); color: var(--pass); }
+    .badge-overall.badge-fail { background: var(--fail-bg); color: var(--fail); }
+    .badge-overall.badge-flag { background: var(--flag-bg); color: var(--flag); }
+    .badge-overall.badge-na   { background: var(--neutral-bg); color: var(--neutral); }
+
+    /* ── Swatch / clip ────────────────────────────────────────────── */
+    .swatch-img { width: 80px; height: 20px; display: block; border-radius: 2px; }
+    .clip-heading { margin: 10px 0 4px; font-size: 0.82rem; font-weight: 600; color: var(--fg-muted); }
+    .clip-canvas  { display: block; max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 8px; }
+
+    /* ── Post images ──────────────────────────────────────────────── */
+    .image-section { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .post-images   { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .post-image    { max-width: 100%; max-height: 280px; object-fit: contain; border-radius: 6px; border: 1px solid var(--border); }
+
+    /* ── Card layout ──────────────────────────────────────────────── */
+    .post-preview { font-size: 13px; color: var(--fg-muted); margin: 4px 0 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .quick-status { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; font-size: 13px; align-items: center; }
+    .status-item  { display: inline-flex; align-items: center; gap: 4px; }
+    .status-label { color: var(--fg-muted); }
+    .card-summary { padding: 0; }
+    .card-details { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+    .card-actions { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+    .expand-btn {
+      padding: 7px 14px;
+      min-height: 44px;
+      background: var(--neutral-bg); color: var(--fg);
+      border: 1px solid var(--border); border-radius: 8px;
+      font: 600 13px/1 inherit; cursor: pointer;
+      transition: background 120ms, border-color 120ms;
+    }
+    .expand-btn:hover { border-color: var(--accent); }
+
+    .view-btn {
+      padding: 7px 14px;
+      min-height: 44px;
+      background: var(--accent); color: var(--accent-text);
+      border: 1px solid var(--accent); border-radius: 8px;
+      font: 600 13px/1 inherit; cursor: pointer;
+      transition: background 120ms;
+    }
+    .view-btn:hover { background: var(--accent-hover); }
+
+    #action-bar { margin: 16px 0 0; display: flex; gap: 10px; flex-wrap: wrap; }
+    #action-bar button {
+      padding: 9px 18px;
+      min-height: 44px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg-card); color: var(--fg);
+      font: 600 13px/1 inherit; cursor: pointer;
+      transition: background 120ms, border-color 120ms;
+    }
+    #action-bar button:hover { border-color: var(--accent); }
+
+    /* ── Reduced motion ───────────────────────────────────────────── */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    }
+
+    /* ── Responsive breakpoints ───────────────────────────────────── */
+    @media (max-width: 768px) {
+      .app-header-inner { padding: 1rem 16px; }
+      .page-inner { padding: 0 16px 36px; }
+      .app-header h1 { font-size: 1.15rem; }
+      .post-card { padding: 14px; }
+    }
+    @media (max-width: 640px) {
+      .app-header h1 { font-size: 1rem; }
+      .quick-status { gap: 6px; }
+      .card-actions { display: flex; flex-direction: column; gap: 8px; }
+      .expand-btn, .view-btn { width: 100%; justify-content: center; }
+    }
+
+    /* ── Footer ───────────────────────────────────────────────────── */
+    .app-footer {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--fg-muted);
+      padding: 24px 20px;
+      border-top: 1px solid var(--border);
+      margin-top: 32px;
+    }
+    .app-footer a { color: var(--fg-muted); }
+    .app-footer .sep { margin: 0 6px; opacity: 0.5; }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to results</a>
+
+  <header class="app-header" role="banner">
+    <div class="app-header-inner">
+      <div class="app-header-text">
+        <h1>Social Media Post <span class="header-accent">Accessibility</span> Checker</h1>
+        <p class="tagline">Audits LinkedIn posts for alt text, emoji overuse, decorative fonts, and image colour contrast</p>
+      </div>
+      <button type="button" id="theme-toggle" class="theme-toggle" aria-label="Switch to dark theme">
+        <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <span class="theme-toggle-label" aria-hidden="true">Dark</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="page-inner">
+    <div id="disclaimer" role="note">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span><strong>Automated audit:</strong> This report is generated by automated tools and may not identify all accessibility issues. Results should be verified by manual testing with assistive technology.</span>
+    </div>
+
+    <div id="status-bar" role="status" aria-live="polite" aria-atomic="true">Connecting to audit...</div>
+
+    <div id="progress-wrap" role="status" aria-live="polite" aria-atomic="true">
+      <p id="progress-label"></p>
+      <progress id="progress-bar"></progress>
+    </div>
+
+    <main id="main-content">
+      <div id="cards" aria-label="Audit results" role="feed"></div>
+      <div id="action-bar" hidden>
+        <button id="download-btn" type="button">Download all reports as ZIP (Markdown + PDF)</button>
+      </div>
+    </main>
+  </div>
+
+  <footer class="app-footer" role="contentinfo">
+    <span>&copy; <a href="https://timdixon.net" target="_blank" rel="noopener noreferrer">Tim Dixon</a></span>
+    <span class="sep">|</span>
+    <span>Social Media Post Accessibility Checker v1.1.4</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

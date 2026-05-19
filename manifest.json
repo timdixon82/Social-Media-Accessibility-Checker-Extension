@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Social Media Post Accessibility Checker",
+  "version": "1.1.4",
+  "description": "Audits social media posts for accessibility: alt text, emoji overuse, decorative fonts, and image colour contrast.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://www.linkedin.com/*",
+    "https://media.licdn.com/*",
+    "https://dms.licdn.com/*"
+  ],
+  "background": {
+    "service_worker": "background/service_worker.js"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Social Media Post Accessibility Checker"
+  },
+  "sandbox": {
+    "pages": ["sandbox/sandbox.html"]
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["vendor/*", "vendor/ort/*", "vendor/models/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
