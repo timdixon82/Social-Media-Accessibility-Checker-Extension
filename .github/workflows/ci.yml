@@ -34,7 +34,7 @@ jobs:
         run: npx eslint src --ext .js,.mjs
 
       - name: Stylelint
-        run: npx stylelint "src/**/*.css"
+        run: npx stylelint --allow-empty-input "src/**/*.css"
 
       - name: HTMLHint
         run: npx htmlhint "src/**/*.html"
