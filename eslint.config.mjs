@@ -39,11 +39,16 @@ export default [
         JSON: 'readonly',
         Error: 'readonly',
         ArrayBuffer: 'readonly',
+        localStorage: 'readonly',
+        fetch: 'readonly',
+        createImageBitmap: 'readonly',
+        OffscreenCanvas: 'readonly',
       },
     },
     rules: {
       'no-unused-vars': 'warn',
       'no-console': 'off',
+      'no-empty': ['error', { 'allowEmptyCatch': true }],
     },
   },
   {
