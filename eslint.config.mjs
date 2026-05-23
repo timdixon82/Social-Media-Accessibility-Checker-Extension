@@ -1,0 +1,52 @@
+import js from '@eslint/js';
+
+export default [
+  js.configs.recommended,
+  {
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        chrome: 'readonly',
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        URL: 'readonly',
+        Blob: 'readonly',
+        File: 'readonly',
+        FileReader: 'readonly',
+        Image: 'readonly',
+        ImageData: 'readonly',
+        Worker: 'readonly',
+        MessageChannel: 'readonly',
+        clearInterval: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        setTimeout: 'readonly',
+        atob: 'readonly',
+        btoa: 'readonly',
+        console: 'readonly',
+        Float64Array: 'readonly',
+        Uint8Array: 'readonly',
+        Map: 'readonly',
+        Set: 'readonly',
+        Promise: 'readonly',
+        Math: 'readonly',
+        parseInt: 'readonly',
+        parseFloat: 'readonly',
+        isNaN: 'readonly',
+        Date: 'readonly',
+        JSON: 'readonly',
+        Error: 'readonly',
+        ArrayBuffer: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': 'warn',
+      'no-console': 'off',
+    },
+  },
+  {
+    ignores: ['dist/**', 'vendor/**', 'node_modules/**'],
+  },
+];
