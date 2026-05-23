@@ -1,0 +1,26 @@
+# Accessibility checks for SMACE. Action SHAs pinned 2026-05-23.
+# Chrome extensions cannot be served as static files to Pa11y or axe-core
+# CLI without a running browser. This workflow uses HTMLHint and ESLint as a
+# static proxy. Full browser testing is tracked in the accessibility backlog.
+
+name: Accessibility
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  static-accessibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
+        with:
+          node-version: lts/*
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: HTMLHint
+        run: npx htmlhint "src/**/*.html"
+      - name: ESLint
+        run: npx eslint src --ext .js,.mjs
