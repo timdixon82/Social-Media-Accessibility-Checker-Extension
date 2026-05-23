@@ -232,9 +232,10 @@ function buildDocDefinition(post, imageReports, timestamp) {
           margin: [0, 0, 0, 10]
         });
 
-        const failing = r.report.colourPairs.filter(p => !p.pass);
+        // Q60A: show failing regions for AAA threshold pairs
+        const failing = r.report.colourPairs.filter(p => !p.passAaa);
         if (failing.length) {
-          content.push({ text: 'Failing regions', style: 'h3', margin: [0, 8, 0, 4] });
+          content.push({ text: 'Failing regions (WCAG 2.2 AAA)', style: 'h3', margin: [0, 8, 0, 4] });
           for (const p of failing) {
             content.push({
               text: `Background ${p.bgHex} / Foreground ${p.fgHex} — ${p.contrast.toFixed(2)}:1`,
