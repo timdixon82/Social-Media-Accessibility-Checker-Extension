@@ -1,0 +1,63 @@
+# Accessibility checks at WCAG 2.2 AAA using axe-core via Playwright.
+#
+# Unlike a static web page, a Chrome extension popup is served at a
+# chrome-extension:// URL and cannot be tested by Pa11y against an HTTP
+# server. Instead, this workflow builds the extension with webpack, loads
+# it into a headless Chromium instance using Playwright's
+# launchPersistentContext with --load-extension, and runs axe-core against
+# the popup and report pages directly. This tests the real extension
+# surfaces — the same HTML and JavaScript the user sees.
+#
+# Tests live in tests/accessibility/popup.spec.js and use the AxeBuilder
+# API from @axe-core/playwright.
+#
+# Known violations from Carol's 2026-05-23 baseline audit are listed in
+# docs/accessibility.md. A failing test means a new regression has been
+# introduced. Fix the regression; do not suppress the violation.
+#
+# No untrusted GitHub event input is used in any run: step, so the
+# workflow is not exposed to command-injection through event data.
+#
+# Action versions were verified against GitHub and pinned to commit SHAs
+# on 2026-05-21. The version tag is in the trailing comment. To update an
+# action, change the SHA and the comment together.
+
+name: Accessibility
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  accessibility:
+    name: axe-core at WCAG 2.2 AAA via Playwright
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build extension
+        run: npm run build
+        # The tests load the built dist/ folder as a Chrome extension.
+        # The build must succeed before accessibility testing can run.
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+        # Installs the Chromium binary and its system dependencies (fonts,
+        # libraries). The --with-deps flag is required on GitHub-hosted runners.
+
+      - name: Run accessibility tests
+        run: npx playwright test tests/accessibility/
+        # Loads the built extension in headless Chromium, navigates to the
+        # popup and report pages, and runs axe-core at WCAG 2.2 AAA.
+        # Exit code is non-zero if any violation is found.
