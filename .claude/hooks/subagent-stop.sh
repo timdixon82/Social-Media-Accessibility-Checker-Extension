@@ -224,10 +224,71 @@ fi
 
 # -------------------------------------------------------------------------
 # Job 4: Capture <!-- TASK --> markers from subagents.
+#
+# Two variants are handled independently:
+#   <!-- TASK project: <PREFIX> --> routes to outputs/project-pending/<PREFIX>.md
+#   <!-- TASK -->                   routes to a work folder or root TASKS.md
+# The project: variant is processed first. Existing routing is unchanged.
 # -------------------------------------------------------------------------
 agent_text=$(printf '%s' "$input" \
   | jq -r '.text // .response // .reason // ""' 2>/dev/null)
 
+# ---- 4a: route <!-- TASK project: PREFIX --> blocks ----------------------
+if [ -n "${agent_text}" ] && printf '%s' "${agent_text}" | grep -qE '<!-- TASK project: [A-Z]{2,4} -->'; then
+  pending_helper="${CLAUDE_PROJECT_DIR}/scripts/project-pending.sh"
+  lint_file="${CLAUDE_PROJECT_DIR}/lint.md"
+
+  # Extract each project-tagged block. Use awk to isolate blocks between
+  # <!-- TASK project: PREFIX --> and <!-- /TASK -->.
+  # Uses BSD awk-compatible syntax (no gawk array capture in match()).
+  printf '%s' "${agent_text}" | awk '
+    BEGIN { in_block = 0; prefix = "" }
+    /<!-- TASK project: [A-Z]{2,4} -->/ {
+      in_block = 1
+      # Extract prefix using sub (BSD awk compatible).
+      tmp = $0
+      sub(/^.*<!-- TASK project: /, "", tmp)
+      sub(/ -->.*$/, "", tmp)
+      prefix = tmp
+      next
+    }
+    /<!-- \/TASK -->/ {
+      in_block = 0
+      prefix = ""
+      next
+    }
+    in_block && /^[[:space:]]*-[[:space:]]+\[[ xX]\][[:space:]]+/ {
+      line = $0
+      sub(/^[[:space:]]+/, "", line)
+      sub(/[[:space:]]+$/, "", line)
+      if (length(line) > 600) line = substr(line, 1, 597) "..."
+      # Print "PREFIX<TAB>task-line" so the shell loop can split them.
+      printf "%s\t%s\n", prefix, line
+    }
+  ' | while IFS=$'\t' read -r block_prefix task_line; do
+    [ -z "${block_prefix}" ] || [ -z "${task_line}" ] && continue
+
+    if [ -f "${pending_helper}" ] && [ -x "${pending_helper}" ]; then
+      if ! bash "${pending_helper}" "${block_prefix}" "${task_line}" 2>/dev/null; then
+        # Helper failed (invalid prefix or other error). Write warning to lint.md.
+        if [ ! -f "${lint_file}" ]; then
+          printf '# Write-without-read lint log\n\nAppend-only.\n\n' > "${lint_file}"
+        fi
+        printf -- '- [%s] project-pending: routing failed for prefix %s — see project-pending.sh output\n' \
+          "$(date '+%Y-%m-%d %H:%M:%S')" "${block_prefix}" >> "${lint_file}"
+      fi
+    else
+      # Helper not found. Write warning to lint.md.
+      if [ ! -f "${lint_file}" ]; then
+        printf '# Write-without-read lint log\n\nAppend-only.\n\n' > "${lint_file}"
+      fi
+      printf -- '- [%s] project-pending: scripts/project-pending.sh not found or not executable\n' \
+        "$(date '+%Y-%m-%d %H:%M:%S')" >> "${lint_file}"
+    fi
+  done
+fi
+
+# ---- 4b: route plain <!-- TASK --> blocks (existing behaviour, unchanged) -
 if [ -n "${agent_text}" ] && printf '%s' "${agent_text}" | grep -q '<!-- TASK -->'; then
   tasks_found=$(printf '%s' "${agent_text}" | awk '
     BEGIN { RS = "<!-- /TASK -->"; ORS = "\n=====\n" }
