@@ -13,7 +13,7 @@ module.exports = {
     'content/content_script':    './src/content/content_script.js',
   },
   output: {
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'dist'), // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal — __dirname is a Node.js build-time constant, not user-supplied input; no traversal risk here.
     filename: '[name].js',
     publicPath: '/',
     clean: true,

@@ -39,6 +39,11 @@ append_event() {
   local current_id
   current_id=$(cat "$work_dir/.current" 2>/dev/null) || return 0
   [ -n "$current_id" ] || return 0
+  # Validate current_id matches expected NNN-slug pattern (path-traversal defence).
+  case "$current_id" in
+    [0-9][0-9][0-9]-*) : ;;
+    *) return 0 ;;
+  esac
   [ -d "$work_dir/$current_id" ] || return 0
 
   local events_file="$work_dir/$current_id/events.jsonl"

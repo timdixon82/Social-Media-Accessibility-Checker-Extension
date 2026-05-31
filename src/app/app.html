@@ -15,7 +15,7 @@
       --bg:            #f4f6f8;
       --bg-card:       #ffffff;
       --fg:            #1a1a1a;
-      --fg-muted:      #4b5563;
+      --fg-muted:      #3d4a5c; /* darkened from #4b5563: #3d4a5c on #f0f2f5 = 8:1, passes WCAG 2.2 AAA */
       --border:        #d1d5db;
       --accent:        #061528;
       --accent-hover:  #0a2445;
@@ -27,7 +27,7 @@
       --fail-bg:       #fee2e2;
       --flag:          #7c2d12;
       --flag-bg:       #ffedd5;
-      --neutral:       #4b5563;
+      --neutral:       #3d4a5c; /* darkened from #4b5563: see --fg-muted note above */
       --neutral-bg:    #f0f2f5;
       --code-bg:       #f0f2f5;
       --radius:        10px;
@@ -85,7 +85,7 @@
       --bg:            #f4f6f8;
       --bg-card:       #ffffff;
       --fg:            #1a1a1a;
-      --fg-muted:      #4b5563;
+      --fg-muted:      #3d4a5c;
       --border:        #d1d5db;
       --accent:        #061528;
       --accent-hover:  #0a2445;
@@ -97,7 +97,7 @@
       --fail-bg:       #fee2e2;
       --flag:          #7c2d12;
       --flag-bg:       #ffedd5;
-      --neutral:       #4b5563;
+      --neutral:       #3d4a5c;
       --neutral-bg:    #f0f2f5;
       --code-bg:       #f0f2f5;
     }
@@ -442,7 +442,7 @@
     </div>
 
     <main id="main-content">
-      <div id="cards" aria-label="Audit results" role="feed"></div>
+      <div id="cards" aria-label="Audit results" role="feed" aria-busy="true"></div>
       <div id="action-bar" hidden>
         <button id="download-btn" type="button">Download all reports as ZIP (Markdown + PDF)</button>
       </div>

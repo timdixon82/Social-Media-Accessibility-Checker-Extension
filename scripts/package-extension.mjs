@@ -18,7 +18,7 @@ const version = manifest.version ?? '1.0.0';
 // Collect all files in dist recursively
 function walk(dir, files = []) {
   for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
+    const full = join(dir, entry); // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal — dir is a trusted build-output path; entry comes from fs.readdirSync, not user input.
     if (statSync(full).isDirectory()) walk(full, files);
     else files.push(full);
   }
