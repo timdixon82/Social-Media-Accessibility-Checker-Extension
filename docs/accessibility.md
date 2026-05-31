@@ -26,6 +26,8 @@ The following findings are from Carol's 2026-05-23 code-inspection baseline. The
 | A-5 | 4.1.2 Name, Role, Value | Moderate | "Expand/Collapse" buttons share identical accessible names. Add `aria-label` including author and date. |
 | A-6 | 1.3.1 Info and Relationships | Low | Inline report page has no landmark structure (no `<main>`, `<nav>`, `<header>`). |
 | AA-1 | 1.4.3 / 1.4.6 Contrast | Resolved | Popup `.coming-soon` text raised to `#595959` on `#fff` (7.0:1). Passes WCAG 2.2 AAA. Fixed in `fix/badge-and-contrast`. |
+| S-09 | 2.4.1 / 1.3.6 Landmarks | Resolved | Popup had no `<main>` landmark; screen readers could not navigate directly to primary content. Wrapped popup body in `<main>`. Fixed in `fix/popup-a11y-gaps`. |
+| S-11 | 1.4.11 Non-text Contrast | Resolved | Fieldset border was `#ccc` on `#fff` (1.6:1, failed SC 1.4.11 3:1 threshold). Raised to `#767676` on `#fff` (4.54:1). Fixed in `fix/popup-a11y-gaps`. |
 | AA-2 | 4.1.3 Status Messages | Low | Two simultaneous `aria-live` regions update with duplicate content during audits. |
 | AA-3 | 1.4.10 Reflow | Low | Popup fixed at `300px` width. Content cut off at 400% zoom. Document as extension-platform constraint. |
 | AAA-1 | 1.4.6 Contrast Enhanced | Moderate | `.url-display` uses `#555` on `#f4f4f4` (≈ 4.6:1), fails AAA 7:1 threshold for 11 px text. |
