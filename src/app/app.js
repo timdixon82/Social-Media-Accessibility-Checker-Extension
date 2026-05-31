@@ -762,7 +762,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
     : '';
 
   // Emoji section
-  let emojiHtml = '';
+  let emojiHtml;
   if (post.emojiResult?.flag) {
     emojiHtml = `<p>${badgeHtml('Flag','flag')} &mdash; ${post.emojiResult.count} emoji found (threshold: more than 5).</p>`;
     if (post.emojiResult.examples?.length) emojiHtml += `<p>Examples: ${esc(post.emojiResult.examples.join(' '))}</p>`;
@@ -771,7 +771,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
   }
 
   // Font section
-  let fontHtml = '';
+  let fontHtml;
   if (post.fontResult?.found) {
     fontHtml = `<p>${badgeHtml('Fail','fail')} &mdash; ${post.fontResult.count} Unicode mathematical character(s) used as decorative text. These are invisible to screen readers.</p>`;
     if (post.fontResult.examples?.length) fontHtml += `<p>Examples: ${esc(post.fontResult.examples.join(' '))}</p>`;
@@ -780,7 +780,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
   }
 
   // Alt text section
-  let altHtml = '';
+  let altHtml;
   if (imageReports.length === 0) {
     altHtml = `<p>No media images found in this post.</p>`;
   } else {

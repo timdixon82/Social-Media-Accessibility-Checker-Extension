@@ -1,7 +1,7 @@
 {
   "name": "linkedin-accessibility-auditor",
   "private": true,
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "Chrome extension: WCAG accessibility auditor for LinkedIn posts.",
   "license": "MIT",
   "author": "Tim Dixon",
@@ -10,7 +10,10 @@
     "watch": "webpack --config webpack.config.js --watch",
     "package": "npm run build && node scripts/package-extension.mjs",
     "postinstall": "node scripts/copy-models.mjs",
-    "lint": "eslint src --ext .js,.mjs && stylelint \"src/**/*.css\" && htmlhint \"src/**/*.html\""
+    "lint:js": "eslint src/",
+    "lint:css": "stylelint --allow-empty-input 'src/**/*.css'",
+    "lint:html": "htmlhint 'src/**/*.html'",
+    "lint": "npm run lint:js && npm run lint:css && npm run lint:html"
   },
   "dependencies": {
     "@gutenye/ocr-browser": "1.4.8",
@@ -19,12 +22,12 @@
     "pdfmake": "0.2.23"
   },
   "devDependencies": {
-    "copy-webpack-plugin": "12.0.2",
-    "eslint": "9.26.0",
-    "@eslint/js": "9.26.0",
+    "@eslint/js": "10.0.1",
+    "copy-webpack-plugin": "14.0.0",
+    "eslint": "10.4.1",
+    "htmlhint": "1.6.3",
     "stylelint": "16.19.1",
     "stylelint-config-standard": "38.0.0",
-    "htmlhint": "1.6.3",
     "webpack": "5.106.2",
     "webpack-cli": "5.1.4"
   }
