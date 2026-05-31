@@ -103,9 +103,13 @@
 
     /* Focus styles for all interactive elements */
     :focus-visible { outline: 3px solid #0a66c2; outline-offset: 2px; }
+
+    /* Main landmark — block, no extra spacing so layout is unchanged */
+    main { display: block; padding: 0; margin: 0; }
   </style>
 </head>
 <body>
+  <main>
   <h1>Social Media Post Accessibility Checker</h1>
 
   <fieldset>
@@ -160,6 +164,8 @@
   <button id="run-btn" type="button">Run Audit</button>
   <div id="error" role="alert" aria-live="assertive"></div>
   <div id="version" aria-label="Extension version"></div>
+
+  </main>
 
   <script src="popup.js"></script>
 </body>
