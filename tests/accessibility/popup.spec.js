@@ -48,9 +48,11 @@ test.beforeAll(async () => {
 
   // Discover the extension ID from the service worker URL.
   // The service worker registers immediately after the extension loads.
+  // 30 000 ms is used instead of the default 15 000 ms because GitHub-hosted
+  // CI runners are slower to initialise the Chrome extension environment.
   let [background] = browserContext.serviceWorkers();
   if (!background) {
-    background = await browserContext.waitForEvent('serviceworker', { timeout: 15000 });
+    background = await browserContext.waitForEvent('serviceworker', { timeout: 30000 });
   }
   // Service worker URL shape: chrome-extension://<id>/background/service_worker.js
   extensionId = background.url().split('/')[2];
