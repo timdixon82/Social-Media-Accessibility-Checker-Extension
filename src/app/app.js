@@ -343,7 +343,7 @@ function renderPost(post, images) {
   summary.appendChild(heading);
 
   const meta = el('p', { className: 'post-meta' });
-  if (post.platform) { meta.appendChild(txt(post.platform)); meta.appendChild(txt(' · ')); }
+  if (post.platform) { meta.appendChild(txt('LinkedIn only')); meta.appendChild(txt(' · ')); }
   meta.appendChild(txt(`${displayDate}`));
   if (post.postUrl) {
     meta.appendChild(txt(' · '));
@@ -947,7 +947,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
   </div>
 
   <h1>${esc(post.author)} &mdash; ${esc(displayDate)}</h1>
-  <p class="meta">${post.platform ? `Platform: ${esc(post.platform)} &nbsp;|&nbsp; ` : ''}Date: ${esc(displayDate)}${post.postUrl ? ` &nbsp;|&nbsp; <a href="${esc(post.postUrl)}" target="_blank" rel="noopener noreferrer">View on LinkedIn</a>` : ''}</p>
+  <p class="meta">${post.platform ? `Platform: LinkedIn only &nbsp;|&nbsp; ` : ''}Date: ${esc(displayDate)}${post.postUrl ? ` &nbsp;|&nbsp; <a href="${esc(post.postUrl)}" target="_blank" rel="noopener noreferrer">View on LinkedIn</a>` : ''}</p>
 
   <div class="overall">
     <span class="badge badge-overall badge-${overallType}">${esc(overallLabel)}</span>
