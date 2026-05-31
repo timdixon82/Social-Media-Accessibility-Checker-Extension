@@ -37,9 +37,20 @@ test.beforeAll(async () => {
   // launchPersistentContext with an empty user-data-dir string works in CI
   // (Playwright creates a temporary directory). The --no-sandbox flag is
   // required on GitHub-hosted runners.
+  //
+  // headless: false tells Playwright not to inject its own legacy headless
+  // flag, which suppresses Chrome extension service workers. --headless=new
+  // passes Chrome's own new headless mode, which supports service workers.
+  // In CI, xvfb-run provides the required virtual framebuffer. Locally, a
+  // real display is used.
   browserContext = await chromium.launchPersistentContext('', {
-    headless: true,
+    headless: false,
+    // --headless=new tells Chrome to use its own new headless mode, which
+    // supports extension service workers. headless: false tells Playwright
+    // not to apply its own (legacy) headless flag. xvfb-run in CI provides
+    // the required display; locally a real display is used.
     args: [
+      '--headless=new',
       `--disable-extensions-except=${EXTENSION_PATH}`,
       `--load-extension=${EXTENSION_PATH}`,
       '--no-sandbox',

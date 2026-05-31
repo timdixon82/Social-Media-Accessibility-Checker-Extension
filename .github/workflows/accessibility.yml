@@ -57,7 +57,9 @@ jobs:
         # libraries). The --with-deps flag is required on GitHub-hosted runners.
 
       - name: Run accessibility tests
-        run: npx playwright test tests/accessibility/
-        # Loads the built extension in headless Chromium, navigates to the
-        # popup and report pages, and runs axe-core at WCAG 2.2 AAA.
-        # Exit code is non-zero if any violation is found.
+        run: xvfb-run --auto-servernum npx playwright test tests/accessibility/
+        # xvfb-run provides a virtual framebuffer so Chrome can run with
+        # headless: false and --headless=new. That combination is required to
+        # register extension service workers in Playwright. --auto-servernum
+        # avoids display-number collisions on shared runners. Exit code is
+        # non-zero if any violation is found.
