@@ -1,50 +1,46 @@
-# Accessibility: Social Media Post Accessibility Checker
+# Project Accessibility: Social Media Accessibility Checker Extension (SMACE)
 
-This page records the project's WCAG 2.2 AAA interpretation and the accessibility decisions made during the setup build.
+This project meets WCAG 2.2 at AAA, interpreted in the global wiki's `accessibility.md`.
 
-## Compliance target
+This page summarises the baseline accessibility audit carried out by Carol on 2026-05-23. The full audit is in `.claude/work/012-smace-setup/carol-baseline-audit.md`.
 
-This project targets WCAG 2.2 Level AAA, matching the team's baseline for all projects. The relevant law is the UK Equality Act, the European Accessibility Act, and the Americans with Disabilities Act (ADA). See the global wiki for the full legal landscape.
+## Surfaces audited
 
-## Contrast verdict threshold: AA to AAA transition (Q60A, 2026-05-23)
+| File | Role |
+|---|---|
+| `src/popup/popup.html` | Extension popup — platform selector, range control, Run Audit button |
+| `src/app/app.html` | Report tab — audit results, progress bar, theme toggle, export actions |
+| `src/offscreen/offscreen.html` | Internal Chrome offscreen document — no user-facing UI |
+| `src/sandbox/sandbox.html` | Chrome sandboxed page for OCR — no user-facing UI |
 
-The extension reports both WCAG 2.2 AA and AAA results for every detected colour pair. The overall image PASS or FAIL verdict now uses WCAG 2.2 AAA thresholds:
+## Known findings (open)
 
-- Normal text (bounding box height below 24 px): 7:1 contrast ratio required.
-- Large text (bounding box height 24 px or above): 4.5:1 contrast ratio required.
+The following findings are from Carol's 2026-05-23 code-inspection baseline. They are not exceptions; they are open defects to be fixed in the accessibility sprint.
 
-Before this change (pre-setup-build), the verdict used WCAG 2.2 AA thresholds (4.5:1 normal / 3:1 large). The AA column is retained in the contrast table for reference.
+| ID | Criterion | Severity | Summary |
+|---|---|---|---|
+| A-1 | 1.1.1 Non-text Content | Moderate | Badge icons use Unicode symbols (✓ ✗ !) that screen readers announce inconsistently. Remove the symbols; the label text is sufficient. |
+| A-2 | 1.3.1 Info and Relationships | High | Duplicate `aria-labelledby` targets across dynamically generated post cards. Suffix each ID with the card sequence counter. |
+| A-3 | 2.1.1 Keyboard | Moderate | New post cards receive programmatic focus on append, pulling keyboard users away. Only focus the first card, or use a polite `aria-live` region. |
+| A-4 | 4.1.2 Name, Role, Value | Moderate | "View full report" buttons share identical accessible names. Add `aria-label` including author and date. |
+| A-5 | 4.1.2 Name, Role, Value | Moderate | "Expand/Collapse" buttons share identical accessible names. Add `aria-label` including author and date. |
+| A-6 | 1.3.1 Info and Relationships | Low | Inline report page has no landmark structure (no `<main>`, `<nav>`, `<header>`). |
+| AA-1 | 1.4.3 / 1.4.6 Contrast | Moderate | Popup `.coming-soon` text uses `#999` on `#fff` (≈ 2.85:1). Fails AA and AAA. |
+| AA-2 | 4.1.3 Status Messages | Low | Two simultaneous `aria-live` regions update with duplicate content during audits. |
+| AA-3 | 1.4.10 Reflow | Low | Popup fixed at `300px` width. Content cut off at 400% zoom. Document as extension-platform constraint. |
+| AAA-1 | 1.4.6 Contrast Enhanced | Moderate | `.url-display` uses `#555` on `#f4f4f4` (≈ 4.6:1), fails AAA 7:1 threshold for 11 px text. |
+| AAA-3 | 2.4.13 Focus Appearance | High | Run button focus ring uses same colour as button background — near-invisible in enabled state. Change to `#ffffff` or `#061528`. |
 
-This decision was authorised by Tim (Q60A, 2026-05-23) and is recorded at docs/decisions/001-aaa-verdict-threshold.md.
+## Exceptions
 
-## Popup focus ring (setup build fix, 2026-05-23)
+Documented accessibility exceptions are in `exceptions/`. None recorded yet.
 
-Before the setup build, the Run Audit button used `outline: 3px solid #0a66c2` as its focus-visible ring. When the button is enabled, its background is also `#0a66c2`, producing a 1:1 contrast ring that fails WCAG 2.2 SC 2.4.13 (Focus Appearance, AAA).
+## Deferred items
 
-The fix changes the focus ring to `#ffffff` (white) in the enabled state. White on `#0a66c2` produces a contrast ratio of approximately 4.6:1, satisfying the AAA criterion.
+The following items are real but not blocking for the current build. They are tracked for the accessibility sprint.
 
-This fix was recommended by Carol (baseline audit finding AAA-3) and authorised by Tim (Q60A included Carol's AAA-3 recommendation in the setup scope). See popup.html.
-
-## "Coming soon" label contrast (extension-platform exception)
-
-The popup shows X/Twitter, Facebook, and Instagram as "coming soon". The label text uses `color: #999` on a white background, which produces approximately 2.85:1 — below WCAG 2.2 AA (4.5:1).
-
-The disabled-control exemption in WCAG 2.2 SC 1.4.3 does not apply to the "coming soon" label because the label is informational text, not a control state indicator. A formal exception is filed at docs/exceptions/coming-soon-label-contrast.md, pending Tim's decision (no Q-number yet). This is not blocking for the setup build.
-
-## Popup fixed width exception
-
-The popup is fixed at `width: 300px`. Chrome extension popups are platform-constrained. At very high zoom levels (above 400%), content may be cut off. This is an extension-platform constraint, not an authoring defect. The exception is filed at docs/exceptions/popup-fixed-width.md.
-
-## Outstanding accessibility gaps (deferred)
-
-The following gaps were identified in the Carol baseline audit and are deferred to the first dedicated accessibility sprint. They are not blocking for the setup build.
-
-1. Manual screen reader testing on VoiceOver/Chrome, JAWS/Chrome, and NVDA/Firefox.
-2. axe-core integration in CI via Playwright (extension pages require a running browser instance).
-3. Focus management for the card list (finding A-3: focus jumps to each new card on append).
-4. aria-live region audit with a real screen reader (findings AA-2).
-5. Inline report page accessibility (landmark structure, skip link, focus start).
-6. Touch target size verification for slider and radio buttons.
-7. Duplicate `aria-labelledby` IDs across multiple post cards (finding A-2).
-8. Unicode badge icon characters — replace with aria-hidden SVG (finding A-1).
-9. "View full report" and "Expand" button accessible names (findings A-4, A-5).
+1. Manual screen reader testing on VoiceOver/Safari, JAWS/Chrome, and NVDA/Firefox.
+2. Keyboard focus management for the card list (coherent "Jump to results" link).
+3. Live-region audit with a real screen reader.
+4. Inline report page full accessibility audit (landmark structure, skip link, focus start point).
+5. Touch and pointer target size verification on a real device.

@@ -1,6 +1,15 @@
-# Release automation with release-please. Action SHAs pinned 2026-05-23.
-# GITHUB_TOKEN is the built-in Actions token, not user-supplied input.
-# No untrusted input is interpolated into run steps in this workflow.
+# Release automation with release-please.
+#
+# Action versions were verified against GitHub and pinned to commit SHAs
+# on 2026-05-21. The version tag is in the trailing comment.
+#
+# No untrusted GitHub event input is used in any run: step.
+#
+# Distribution: SMACE is distributed as a locally loaded Chrome extension.
+# There is no automated Chrome Web Store upload. When release-please creates
+# a release, download the source ZIP from the GitHub Release, extract it,
+# and load it unpacked via chrome://extensions. A packaging workflow that
+# builds and attaches a dist/ ZIP to the release can be added here later.
 
 name: Release
 on:
@@ -18,4 +27,7 @@ jobs:
       - name: Release Please
         uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7  # v5.0.0
         with:
+          # GITHUB_TOKEN is a built-in secret provided automatically by
+          # GitHub Actions on every run. No manual token configuration or
+          # repository secret is required.
           token: ${{ secrets.GITHUB_TOKEN }}

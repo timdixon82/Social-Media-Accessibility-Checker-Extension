@@ -1,63 +1,43 @@
-# Glossary: Social Media Post Accessibility Checker
+# Project Wiki: Glossary: Social Media Accessibility Checker Extension (SMACE)
 
-Terms used in this project's code, documentation, and reports.
+Domain terms specific to SMACE, defined as the team meets them. Terms that apply across every project are in the global wiki's glossary.
 
-## AA
+## Alt text
 
-WCAG 2.2 Level AA. The minimum legal accessibility standard in the UK and EU. Contrast thresholds: 4.5:1 for normal text, 3:1 for large text. The extension shows AA results in the contrast table for reference but uses AAA for the overall verdict.
+A text description of an image, read aloud by screen readers. LinkedIn provides a placeholder string ("no alternative text description for this image") that the extension treats as a failure.
 
-## AAA
+## axe-core
 
-WCAG 2.2 Level AAA. The highest WCAG conformance level and the team's compliance baseline. Contrast thresholds: 7:1 for normal text, 4.5:1 for large text. The extension's overall pass/fail verdict uses AAA thresholds.
+An open-source accessibility testing engine from Deque Systems. Used by the extension's CI accessibility workflow to check WCAG 2.2 AAA conformance.
 
-## App page
+## Decorative Unicode font
 
-The `src/app/app.html` page opened as a new tab when an audit starts. It has full DOM and timer rights and hosts the sandboxed OCR iframe. The audit results are rendered here.
+Unicode mathematical alphanumeric characters (code points U+1D400–U+1D7FF) used as bold or italic text in social media posts. These are invisible to screen readers because they are not standard Latin characters.
 
-## Bounding box
+## Emoji overuse
 
-A rectangular region in a resized image, returned by the OCR model, enclosing a detected word. Used to sample pixel colours for contrast analysis.
+The extension flags posts with more than five emoji characters as a potential accessibility barrier.
 
-## Content script
+## ONNX Runtime Web
 
-The `src/content/content_script.js` file injected into the active LinkedIn tab by the service worker. Scrolls the page, expands "see more" buttons, and extracts post data.
+An open-source inference engine for machine learning models running in a browser via WebAssembly. Used by SMACE to run PP-OCRv5 locally without sending data to a server.
 
-## Large text
+## PP-OCRv5
 
-A detected word whose bounding box height is 24 px or above in the canonical resized image space (800 px wide). Large text has lower contrast thresholds than normal text under WCAG 2.2.
+The OCR (optical character recognition) model bundled with SMACE. Runs on ONNX Runtime Web to extract text from images on the user's device.
 
-## Manifest V3 (MV3)
+## Sandboxed page
 
-The current Chrome extension architecture. The service worker (background script) replaces the persistent background page. MV3 imposes restrictions on `eval` and requires the sandbox iframe pattern for OCR.
-
-## NO_TEXT verdict
-
-The verdict returned by `analyseImage()` when OCR finds no usable text in an image. The image is not counted as a pass or fail for contrast purposes.
-
-## OCR
-
-Optical character recognition. SMACE uses PaddleOCR PP-OCRv4 running as ONNX models in a WebAssembly context inside the sandbox iframe.
-
-## Popup
-
-The `src/popup/popup.html` extension popup that appears when the user selects the extension icon. Provides the platform selector, post count slider, and Run Audit button.
-
-## Sandbox iframe
-
-A hidden `<iframe>` element loaded from `src/sandbox/sandbox.html`, which is listed in `manifest.json` under `sandbox.pages`. The sandbox page is exempt from the extension's Content Security Policy and can run `'unsafe-eval'` code, which is required by `onnxruntime-web`'s WASM threading proxy.
-
-## Service worker
-
-The `src/background/service_worker.js` Manifest V3 background script. Opens the app tab, injects the content script, fetches images, and routes messages between the popup, content script, and app page.
+A Chrome extension page loaded with a restrictive Content Security Policy that disables Chrome extension APIs. Used by SMACE to host the ONNX Runtime WebAssembly OCR model, which requires `wasm-unsafe-eval`.
 
 ## SMACE
 
-Social Media Post Accessibility Checker Extension. The project short name used in documentation and log entries.
+Social Media Accessibility Checker Extension. A Chrome Manifest V3 browser extension that audits LinkedIn posts for accessibility issues.
 
-## Verdict
+## Webpack
 
-The binary pass/fail result for an image's colour contrast. SMACE verdicts: PASS (all colour pairs pass WCAG 2.2 AAA), FAIL (at least one pair fails AAA), or NO_TEXT (no text detected by OCR).
+The JavaScript module bundler used to compile the SMACE source into the `dist/` folder that Chrome loads as the extension.
 
-## WCAG
+## WCAG 2.2 AAA
 
-Web Content Accessibility Guidelines. Published by the W3C. Version 2.2 is current. See the global wiki's accessibility.md for the full interpretation.
+Web Content Accessibility Guidelines version 2.2, at the highest conformance level (AAA). The target conformance level for all team projects.

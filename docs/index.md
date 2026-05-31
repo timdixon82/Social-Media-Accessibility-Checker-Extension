@@ -1,25 +1,35 @@
-# Project Wiki: Social Media Post Accessibility Checker (SMACE)
+# Project Wiki: Social Media Accessibility Checker Extension (SMACE)
 
-This wiki records project-specific knowledge for the SMACE Chrome extension. Cross-cutting knowledge lives in the team's global wiki at `docs/` in the AgentTeam repository.
+This is the project wiki for SMACE. It holds knowledge specific to this project. Knowledge shared across every project lives in the global wiki at the team root.
 
-## Catalogue
+Cross-cutting learnings flow to both this wiki and the global wiki at the time they are learned.
 
-### Accessibility
+## Standards
 
-- [accessibility.md](accessibility.md) — WCAG 2.2 AAA interpretation for this project, including the AA-to-AAA threshold transition and the popup focus-ring fix.
+- `coding-standards.md`: this project's stack and its project-specific coding notes.
+- `accessibility.md`: this project's accessibility notes.
+- `privacy.md`: this project's analytics posture, data collection statement, and third-party services.
+- `requirements.md`: this project's user stories, functional requirements, and definition of done.
+- `security-review.md`: this project's security review findings.
+- `code-review.md`: Jed's OWASP-mapped penetration test and code review for this project.
+- `release-process.md`: this project's branching model, pull-request flow, merge gate, and release steps.
 
-### Decisions
+## Decisions
 
-- [decisions/001-aaa-verdict-threshold.md](decisions/001-aaa-verdict-threshold.md) — Decision to use WCAG 2.2 AAA as the overall contrast verdict threshold (Q60A).
+Architecture Decision Records are in `decisions/`.
 
-### Exceptions
+## Patterns
 
-- [exceptions/popup-fixed-width.md](exceptions/popup-fixed-width.md) — Extension-platform exception for the popup fixed width at high zoom levels.
+Pattern pages are in `patterns/`.
 
-### Log
+## Glossary
 
-- [log.md](log.md) — Chronological, append-only operations log.
+- `glossary.md`: this project's domain terms.
 
-### Glossary
+## Exceptions
 
-- [glossary.md](glossary.md) — Terms used in this project.
+- `exceptions/`: this project's documented accessibility and security exceptions.
+
+## Operations
+
+- `log.md`: this project's chronological, append-only operations log.

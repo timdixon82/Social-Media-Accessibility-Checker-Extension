@@ -1,9 +1,11 @@
 # Security checks: Semgrep, Trivy, and dependency review.
 #
 # Action versions were verified against GitHub and pinned to commit SHAs
-# on 2026-05-23. The version tag is in the trailing comment.
+# on 2026-05-21. The version tag is in the trailing comment.
 #
-# No user-supplied input is interpolated into run steps.
+# Dependency review requires GitHub Advanced Security. This repository is
+# public, so the job runs. Remove it if the repository is made private
+# on a plan without GitHub Advanced Security.
 
 name: Security
 on:
@@ -20,9 +22,12 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - name: Semgrep
+        # semgrep scan runs locally with the default ruleset and exits non-zero
+        # on any finding. semgrep ci requires a SEMGREP_APP_TOKEN and uses
+        # cloud-based CI mode; it is not used here to avoid token dependency.
         run: |
           pip install semgrep
-          semgrep ci --config auto
+          semgrep scan --config p/default --error
 
   trivy:
     runs-on: ubuntu-latest

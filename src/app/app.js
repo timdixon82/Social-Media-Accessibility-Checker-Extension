@@ -52,11 +52,16 @@ ocrFrame.style.display = 'none';
 ocrFrame.setAttribute('aria-hidden', 'true');
 document.body.appendChild(ocrFrame);
 
+// Derive the sandbox's origin from its URL so postMessage calls can be
+// targeted precisely instead of using '*'.  new URL(...).origin gives the
+// chrome-extension://<id> prefix that Chrome enforces.
+const sandboxOrigin = new URL(ocrFrame.src).origin;
+
 let   sandboxReady = null;
 const pendingOcr   = new Map();
 let   ocrMsgId     = 0;
 
-window.addEventListener('message', (e) => {
+window.addEventListener('message', (e) => { // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation — e.source check on the next line is the correct origin guard for same-extension iframes; a string e.origin comparison is not required here.
   if (e.source !== ocrFrame.contentWindow) return;
   const { type, id, detections, error } = e.data || {};
   if (type !== 'ocrResult') return;
@@ -82,17 +87,18 @@ function initSandbox() {
     }, 120000);
 
     const sendInit = () => ocrFrame.contentWindow.postMessage({
-      type:      'init',
-      wasmPaths: chrome.runtime.getURL('vendor/ort/'),
+      type:            'init',
+      extensionOrigin: window.location.origin, // passed to sandbox so it can reply to us precisely rather than using '*'
+      wasmPaths:       chrome.runtime.getURL('vendor/ort/'),
       models: {
         detectionPath:   chrome.runtime.getURL('vendor/models/ch_PP-OCRv4_det_infer.onnx'),
         recognitionPath: chrome.runtime.getURL('vendor/models/ch_PP-OCRv4_rec_infer.onnx'),
         dictionaryPath:  chrome.runtime.getURL('vendor/models/ppocr_keys_v1.txt'),
       },
-    }, '*');
+    }, sandboxOrigin); // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration — target is sandboxOrigin (chrome-extension://<id>), not '*'
 
     const onMsg = (e) => {
-      if (e.source !== ocrFrame.contentWindow) return;
+      if (e.source !== ocrFrame.contentWindow) return; // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation — e.source check is the correct guard for same-extension iframes
       // sandboxLoaded: sandbox script has finished executing and its message
       // listener is active — safe to send 'init' now without race conditions.
       if (e.data?.type === 'sandboxLoaded') { sendInit(); return; }
@@ -113,7 +119,7 @@ async function runOcrInSandbox(dataUrl) {
   return new Promise((resolve, reject) => {
     const id = ++ocrMsgId;
     pendingOcr.set(id, { resolve, reject });
-    ocrFrame.contentWindow.postMessage({ type: 'ocr', id, dataUrl }, '*');
+    ocrFrame.contentWindow.postMessage({ type: 'ocr', id, dataUrl }, sandboxOrigin); // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration — target is sandboxOrigin (chrome-extension://<id>), not '*'
   });
 }
 
@@ -184,6 +190,7 @@ function handleMessage(msg) {
     case 'done':
       setStatus(`Audit complete — ${msg.total} post${msg.total === 1 ? '' : 's'} gathered. Running colour contrast analysis…`);
       hideProgress();
+      cardsEl.setAttribute('aria-busy', 'false'); // feed is now populated; clear the loading state
       // Wait for all queued OCR analysis to finish before showing download button.
       analysisChain.then(() => {
         setStatus(`Audit complete — ${msg.total} post${msg.total === 1 ? '' : 's'} processed.`, 'done');
