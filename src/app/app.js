@@ -61,8 +61,8 @@ let   sandboxReady = null;
 const pendingOcr   = new Map();
 let   ocrMsgId     = 0;
 
-window.addEventListener('message', (e) => {
-  if (e.source !== ocrFrame.contentWindow) return; // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation — e.source check is the correct origin guard for same-extension iframes; chrome.runtime.getURL-based origin is not required here.
+window.addEventListener('message', (e) => { // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation — e.source check on the next line is the correct origin guard for same-extension iframes; a string e.origin comparison is not required here.
+  if (e.source !== ocrFrame.contentWindow) return;
   const { type, id, detections, error } = e.data || {};
   if (type !== 'ocrResult') return;
   const pending = pendingOcr.get(id);

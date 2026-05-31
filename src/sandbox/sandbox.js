@@ -17,11 +17,8 @@ let trustedOrigin = null;
 
 // Register the listener BEFORE notifying the parent, so we can never miss
 // the 'init' message that the parent sends after receiving 'sandboxLoaded'.
-window.addEventListener('message', async (e) => {
-  // Origin validation: only accept messages from the direct parent frame.
-  // chrome.runtime.getURL is not available in a sandboxed page, so we cannot
-  // compare e.origin to the extension URL; validating e.source against
-  // window.parent is the equivalent guard for same-extension iframes. // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation
+window.addEventListener('message', async (e) => { // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation — chrome.runtime.getURL is unavailable in a sandboxed page; e.source === window.parent is the equivalent origin guard for same-extension iframes.
+  // Only accept messages from the direct parent frame.
   if (e.source !== window.parent) return;
 
   const { type, id, dataUrl, wasmPaths, models, extensionOrigin } = e.data || {};
