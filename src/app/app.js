@@ -190,6 +190,7 @@ function handleMessage(msg) {
     case 'done':
       setStatus(`Audit complete — ${msg.total} post${msg.total === 1 ? '' : 's'} gathered. Running colour contrast analysis…`);
       hideProgress();
+      cardsEl.setAttribute('aria-busy', 'false'); // feed is now populated; clear the loading state
       // Wait for all queued OCR analysis to finish before showing download button.
       analysisChain.then(() => {
         setStatus(`Audit complete — ${msg.total} post${msg.total === 1 ? '' : 's'} processed.`, 'done');
