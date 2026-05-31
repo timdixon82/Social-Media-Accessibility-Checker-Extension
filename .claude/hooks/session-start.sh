@@ -116,6 +116,45 @@ if [ -f "$tv_file" ]; then
         fi
       fi
     fi
+
+    # ── Pending tasks from AgentTeam (ADR-032-4, ADR-032-5) ─────────────────
+    # Guard 1: master is already validated above (we are inside the `else`
+    # branch of `if [ ! -d "$master" ]`). Read only here, never before.
+    #
+    # Guard 2: validate prefix for shape and characters before building path.
+    # Guard 3: read-only; print descriptions via printf '%s\n' — never source,
+    # eval, or let shell-interpolate file contents.
+    _pending_prefix_file="$proj/.claude/project-prefix"
+    if [ -f "$_pending_prefix_file" ]; then
+      _pending_prefix="$(tr -d '[:space:]' < "$_pending_prefix_file" 2>/dev/null || true)"
+      # Validate: must be 2-4 uppercase letters only (path-traversal guard).
+      if [ -n "$_pending_prefix" ] && printf '%s' "$_pending_prefix" | grep -qE '^[A-Z]{2,4}$'; then
+        _pending_file="$master/outputs/project-pending/${_pending_prefix}.md"
+        if [ -f "$_pending_file" ]; then
+          # Count open entries. grep -c exits 1 with no matches — handle that.
+          _pending_count=$(grep -cE '^- \[ \]' "$_pending_file" 2>/dev/null || true)
+          if [ "${_pending_count:-0}" -gt 0 ]; then
+            printf 'Pending tasks from AgentTeam (%d item(s)):\n' "$_pending_count"
+            # Strip "- [ ] " prefix and all inline tags. Print each description
+            # as literal text via printf '%s\n' (never unquoted echo or printf "$desc").
+            while IFS= read -r _pending_raw; do
+              case "$_pending_raw" in
+                '- [ ] '*) : ;;
+                *) continue ;;
+              esac
+              # Strip the leading "- [ ] ".
+              _pending_desc="${_pending_raw#'- [ ] '}"
+              # Strip all inline backtick tags from the end.
+              while printf '%s' "$_pending_desc" | grep -qE '[[:space:]]+`[a-z-]+:[^`]+`[[:space:]]*$'; do
+                _pending_desc="$(printf '%s' "$_pending_desc" | sed 's/[[:space:]]*`[a-z-][^`]*`[[:space:]]*$//')"
+              done
+              printf '  - %s\n' "$_pending_desc"
+            done < "$_pending_file"
+          fi
+        fi
+      fi
+    fi
+    # ── End pending tasks check ──────────────────────────────────────────────
   fi
 
 fi
