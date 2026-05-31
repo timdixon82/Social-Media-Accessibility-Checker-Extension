@@ -19,7 +19,7 @@
 
     /* Platform selector */
     fieldset {
-      border: 1px solid #ccc;
+      border: 1px solid #767676; /* #767676 on #fff = 4.54:1 — passes WCAG SC 1.4.11 Non-text Contrast (3:1) */
       border-radius: 6px;
       padding: 10px 12px;
       margin: 0 0 14px;
@@ -103,9 +103,13 @@
 
     /* Focus styles for all interactive elements */
     :focus-visible { outline: 3px solid #0a66c2; outline-offset: 2px; }
+
+    /* Main landmark — block, no extra spacing so layout is unchanged */
+    main { display: block; padding: 0; margin: 0; }
   </style>
 </head>
 <body>
+  <main>
   <h1>Social Media Post Accessibility Checker</h1>
 
   <fieldset>
@@ -160,6 +164,8 @@
   <button id="run-btn" type="button">Run Audit</button>
   <div id="error" role="alert" aria-live="assertive"></div>
   <div id="version" aria-label="Extension version"></div>
+
+  </main>
 
   <script src="popup.js"></script>
 </body>
