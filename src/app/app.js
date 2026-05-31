@@ -622,8 +622,8 @@ function buildContrastSection(imageReports) {
       imgSection.appendChild(p);
       if (r.report.colourPairs?.length) {
         imgSection.appendChild(buildContrastTable(r.report.colourPairs));
-        // Failing regions — clip canvases with red-outlined bboxes (matches sister project)
-        const failing = r.report.colourPairs.filter(pair => !pair.pass);
+        // Failing regions — clip canvases with red-outlined bboxes; uses AAA threshold (Q60A)
+        const failing = r.report.colourPairs.filter(pair => !pair.passAaa);
         if (failing.length) {
           const fh = el('h4', { textContent: 'Failing regions' });
           imgSection.appendChild(fh);
@@ -648,7 +648,7 @@ function buildContrastSection(imageReports) {
   }
   const note = el('p');
   const em = el('em');
-  em.textContent = 'Thresholds: AA 4.5:1 normal text / 3:1 large text. AAA 7:1 normal / 4.5:1 large. Large text = bounding box height 24 px or more.';
+  em.textContent = 'Overall verdict uses WCAG 2.2 AAA: 7:1 normal text / 4.5:1 large text. AA thresholds (4.5:1 normal / 3:1 large) shown for reference. Large text = bounding box height 24 px or more.';
   note.appendChild(em);
   section.appendChild(note);
   return section;
@@ -769,7 +769,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
     : '';
 
   // Emoji section
-  let emojiHtml = '';
+  let emojiHtml;
   if (post.emojiResult?.flag) {
     emojiHtml = `<p>${badgeHtml('Flag','flag')} &mdash; ${post.emojiResult.count} emoji found (threshold: more than 5).</p>`;
     if (post.emojiResult.examples?.length) emojiHtml += `<p>Examples: ${esc(post.emojiResult.examples.join(' '))}</p>`;
@@ -778,7 +778,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
   }
 
   // Font section
-  let fontHtml = '';
+  let fontHtml;
   if (post.fontResult?.found) {
     fontHtml = `<p>${badgeHtml('Fail','fail')} &mdash; ${post.fontResult.count} Unicode mathematical character(s) used as decorative text. These are invisible to screen readers.</p>`;
     if (post.fontResult.examples?.length) fontHtml += `<p>Examples: ${esc(post.fontResult.examples.join(' '))}</p>`;
@@ -787,7 +787,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
   }
 
   // Alt text section
-  let altHtml = '';
+  let altHtml;
   if (imageReports.length === 0) {
     altHtml = `<p>No media images found in this post.</p>`;
   } else {
@@ -839,8 +839,8 @@ function buildReportHtml(post, imageReports, theme = 'light') {
             </tr>`;
           }
           contrastHtml += `</tbody></table></div>`;
-          // Failing regions with clip images (red-outlined bboxes)
-          const failing = r.report.colourPairs.filter(p => !p.pass);
+          // Failing regions with clip images (red-outlined bboxes); uses AAA threshold (Q60A)
+          const failing = r.report.colourPairs.filter(p => !p.passAaa);
           if (failing.length) {
             contrastHtml += `<h4>Failing regions</h4>`;
             for (const p of failing) {
@@ -853,7 +853,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
         }
       }
     }
-    contrastHtml += `<p><em>Thresholds: AA 4.5:1 normal text / 3:1 large text. AAA 7:1 normal / 4.5:1 large. Large text = bounding box height &ge; 24 px.</em></p>`;
+    contrastHtml += `<p><em>Overall verdict uses WCAG 2.2 AAA: 7:1 normal text / 4.5:1 large text. AA thresholds (4.5:1 normal / 3:1 large) shown for reference. Large text = bounding box height &ge; 24 px.</em></p>`;
   }
 
   return `<!doctype html>

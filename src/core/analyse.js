@@ -161,7 +161,8 @@ export function analyseImage(imageData, ocrDetections) {
   }
 
   const colourPairs = buildColourPairs(findings);
-  const failures    = colourPairs.filter((p) => !p.pass);
+  // Q60A: overall verdict uses WCAG 2.2 AAA thresholds (7:1 normal / 4.5:1 large text).
+  const failures    = colourPairs.filter((p) => !p.passAaa);
   const verdict     = failures.length ? 'FAIL' : 'PASS';
   const minCr       = colourPairs[0].contrast;
   const maxCr       = colourPairs[colourPairs.length - 1].contrast;
@@ -169,11 +170,11 @@ export function analyseImage(imageData, ocrDetections) {
   let detail;
   if (failures.length) {
     const worst = failures[0];
-    detail = `${failures.length}/${colourPairs.length} colour combination(s) fail WCAG 2.2 AA — `
+    detail = `${failures.length}/${colourPairs.length} colour combination(s) fail WCAG 2.2 AAA — `
            + `worst: ${worst.fgHex} on ${worst.bgHex} `
-           + `at ${worst.contrast.toFixed(1)}:1 (required ${worst.required}:1)`;
+           + `at ${worst.contrast.toFixed(1)}:1 (required ${worst.requiredAaa}:1)`;
   } else {
-    detail = `All ${colourPairs.length} colour combination(s) pass `
+    detail = `All ${colourPairs.length} colour combination(s) pass WCAG 2.2 AAA `
            + `(range ${minCr.toFixed(1)}–${maxCr.toFixed(1)}:1)`;
   }
 

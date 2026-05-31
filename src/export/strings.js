@@ -10,8 +10,8 @@ export const APP_NAME = 'Social Media Post Accessibility Checker';
 export const SITE_URL = 'https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension';
 
 export const THRESHOLDS_FOOTER =
-  'Contrast thresholds — AA: 4.5:1 normal / 3:1 large text · '
-  + 'AAA: 7:1 normal / 4.5:1 large text. '
+  'Overall verdict uses WCAG 2.2 AAA thresholds: 7:1 normal / 4.5:1 large text. '
+  + 'AA thresholds (4.5:1 normal / 3:1 large) are shown for reference. '
   + 'Large text = ≥24 px OCR box height. '
   + 'Detected via PaddleOCR PP-OCRv4.';
 
