@@ -68,6 +68,11 @@ if [ -f "$path_index" ]; then
 
   while IFS=' ' read -r fname rpath; do
     [ -z "$fname" ] || [ -z "$rpath" ] && continue
+    # Validate fname matches the expected NNN-slug pattern (path-traversal defence).
+    case "$fname" in
+      [0-9][0-9][0-9]-*) : ;;
+      *) continue ;;
+    esac
     [ -d "$work_dir/$fname" ] || continue          # skip archived / missing
 
     norm_rpath=$(realpath "$rpath" 2>/dev/null || printf '%s' "$rpath")
