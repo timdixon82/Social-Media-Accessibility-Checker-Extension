@@ -436,9 +436,14 @@
 
     <div id="status-bar" role="status" aria-live="polite" aria-atomic="true">Connecting to audit...</div>
 
-    <div id="progress-wrap" role="status" aria-live="polite" aria-atomic="true">
+    <!-- AA-2 (WCAG 4.1.3): aria-live removed from progress-wrap to prevent duplicate
+         announcements alongside #status-bar. The <progress> element is natively
+         announced by screen readers; #progress-label is linked via aria-labelledby
+         so assistive technology reads the label text when the progress bar is focused
+         or described. Status updates are handled exclusively by #status-bar above. -->
+    <div id="progress-wrap">
       <p id="progress-label"></p>
-      <progress id="progress-bar"></progress>
+      <progress id="progress-bar" aria-labelledby="progress-label"></progress>
     </div>
 
     <main id="main-content">
