@@ -135,6 +135,7 @@ esac
 # Job 2: Raw event stream (every tool call).
 lib="${REPO_ROOT}/.claude/hooks/_lib/events.sh"
 if [ -f "$lib" ]; then
+  # source is permitted here for library loading inside hooks; it does not violate the CLAUDE.md rule, which applies to agent tool calls only.
   # shellcheck source=/dev/null
   source "$lib"
   # Truncate long input/output summaries to 200 chars each.
@@ -172,8 +173,7 @@ case "$tool_name" in
       | "${REPO_ROOT}"/.claude/work/*/answers.md)
         status_script="${REPO_ROOT}/scripts/status.sh"
         if [ -f "$status_script" ] && [ -x "$status_script" ]; then
-          repo_hash=$(printf '%s' "${CLAUDE_PROJECT_DIR:-$REPO_ROOT}" | shasum -a 1 | cut -c1-12)
-          marker="/tmp/agentteam-status-rebuild-${repo_hash}.lock"
+          marker="${REPO_ROOT}/.claude/.status-rebuild.lock"
           date +%s%N > "$marker" 2>/dev/null || true
           (
             sleep 2

@@ -18,3 +18,6 @@ Scaffold a new project from the agent team template. Sonja runs this with Tim.
 4. Copy `templates/project-docs/` into the new project as its `docs/` project wiki, and stamp the project name into the project wiki's `index.md`.
 5. Record the new project in the projects registry.
 6. Creating the GitHub repository is a GitHub action: it must be pre-approved in a brief, or approved by Tim at the time. Set the repository visibility correctly at creation; it can never be changed afterwards.
+7. Immediately after the repository is created, enable auto-delete of merged branches by running:
+   `gh api repos/timdixon82/<repo-name> --method PATCH --field delete_branch_on_merge=true`
+   This keeps the repository clean: merged branches are removed automatically by GitHub. It does not affect open branches or git history.

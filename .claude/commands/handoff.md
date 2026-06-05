@@ -1,10 +1,10 @@
 ---
-description: Dispatch a specialist agent with a structured brief
+description: Hand off a task to a specialist agent with a structured brief
 argument-hint: [agent] [task]
 allowed-tools: Read, Agent
 ---
 
-Dispatch a specialist agent with a clear, structured brief.
+Hand off a task to a specialist agent with a clear, structured brief.
 
 1. Read `$ARGUMENTS`. The first word is the agent name; the rest is the task.
 2. Confirm the agent is one of the seven agents who work behind Sonja, listed in `CLAUDE.md`: the six specialists (Tad, Simon, Jacob, Jed, Sean, Carol) or Matt the reasoner.

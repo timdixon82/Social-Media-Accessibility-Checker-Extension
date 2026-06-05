@@ -45,6 +45,14 @@ Place the recommendation first. Sonja reads top to bottom; the bottom line comes
 
 Clarification relay rules: see [docs/patterns/clarification-relay.md](../../docs/patterns/clarification-relay.md).
 
+## Wiki responsibilities
+
+Wiki responsibilities: see [docs/patterns/wiki-operations.md](../../docs/patterns/wiki-operations.md).
+
+## Handoff
+
+Return your recommendation to Sonja. Do not dispatch other agents, open pull requests, or merge branches.
+
 ## Handoff envelope
 
 Handoff envelope: see [docs/patterns/handoff-envelope.md](../../docs/patterns/handoff-envelope.md).
@@ -52,10 +60,6 @@ Handoff envelope: see [docs/patterns/handoff-envelope.md](../../docs/patterns/ha
 ## Shell command rules
 
 Shell command rules: see [CLAUDE.md](../../CLAUDE.md#running-git-and-shell-commands).
-
-## Wiki responsibilities
-
-Wiki responsibilities: see [docs/patterns/wiki-operations.md](../../docs/patterns/wiki-operations.md).
 
 ## Task markers
 

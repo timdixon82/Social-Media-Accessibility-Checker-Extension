@@ -64,9 +64,9 @@ Return your requirements, documents, research, or copy to Sonja. Requirements us
 
 Handoff envelope: see [docs/patterns/handoff-envelope.md](../../docs/patterns/handoff-envelope.md).
 
-### References
+## Shell command rules
 
-- Shell command rules: see [CLAUDE.md](../../CLAUDE.md#running-git-and-shell-commands).
+Shell command rules: see [CLAUDE.md](../../CLAUDE.md#running-git-and-shell-commands).
 
 ## Task markers
 
