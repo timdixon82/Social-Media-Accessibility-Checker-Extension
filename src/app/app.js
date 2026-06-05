@@ -235,11 +235,19 @@ function el(tag, attrs = {}) {
 
 function txt(str) { return document.createTextNode(str || ''); }
 
-const BADGE_ICONS = { pass: '✓ ', fail: '✗ ', flag: '! ', na: '' };
+// Unicode symbols are decorative; wrap in aria-hidden so screen readers
+// announce only the label text (A-1: WCAG 1.1.1 Non-text Content).
+const BADGE_ICONS = { pass: '✓', fail: '✗', flag: '!', na: '' };
 
 function badge(label, type) {
   const span = el('span', { className: `badge badge-${type}` });
-  span.textContent = (BADGE_ICONS[type] || '') + label;
+  const icon = BADGE_ICONS[type];
+  if (icon) {
+    const iconSpan = el('span', { 'aria-hidden': 'true' });
+    iconSpan.textContent = icon + ' ';
+    span.appendChild(iconSpan);
+  }
+  span.appendChild(document.createTextNode(label));
   return span;
 }
 
@@ -385,11 +393,15 @@ function renderPost(post, images) {
   // Action buttons (always visible)
   const detailsId = `post-details-${seq}`;
   const actions = el('div', { className: 'card-actions' });
-  const expandBtn = el('button', { type: 'button', className: 'expand-btn' });
+  // A-5 (WCAG 4.1.2): aria-label disambiguates buttons across cards using author and date.
+  const expandBtn = el('button', { type: 'button', className: 'expand-btn',
+    'aria-label': `Expand details for ${post.author}, ${displayDate}` });
   expandBtn.textContent = 'Expand';
   expandBtn.setAttribute('aria-expanded', 'false');
   expandBtn.setAttribute('aria-controls', detailsId);
-  const viewBtn = el('button', { className: 'view-btn', type: 'button' });
+  // A-4 (WCAG 4.1.2): aria-label disambiguates buttons across cards using author and date.
+  const viewBtn = el('button', { className: 'view-btn', type: 'button',
+    'aria-label': `View full report for ${post.author}, ${displayDate}` });
   viewBtn.textContent = 'View full report';
   append(actions, expandBtn, viewBtn);
   card.appendChild(summary);
@@ -417,9 +429,9 @@ function renderPost(post, images) {
   const summaryWrap = el('div');
   details.appendChild(summaryWrap);
 
-  details.appendChild(buildEmojiSection(post));
-  details.appendChild(buildFontSection(post));
-  details.appendChild(buildAltSection(post, images));
+  details.appendChild(buildEmojiSection(post, seq));
+  details.appendChild(buildFontSection(post, seq));
+  details.appendChild(buildAltSection(post, images, seq));
 
   // Contrast placeholder
   const contrastWrap = el('div');
@@ -436,10 +448,17 @@ function renderPost(post, images) {
   card.appendChild(actions);
 
   // Expand / collapse toggle
+  // A-5 (WCAG 4.1.2): update aria-label when state changes so the name always
+  // reflects the current action and identifies the target post.
   expandBtn.addEventListener('click', () => {
     const isExpanded = expandBtn.getAttribute('aria-expanded') === 'true';
     expandBtn.setAttribute('aria-expanded', isExpanded ? 'false' : 'true');
     expandBtn.textContent = isExpanded ? 'Expand' : 'Collapse';
+    expandBtn.setAttribute('aria-label',
+      isExpanded
+        ? `Expand details for ${post.author}, ${displayDate}`
+        : `Collapse details for ${post.author}, ${displayDate}`
+    );
     details.hidden = isExpanded;
   });
 
@@ -448,8 +467,13 @@ function renderPost(post, images) {
   viewBtn.addEventListener('click', () => viewReport(post, reportRef.imageReports));
 
   cardsEl.appendChild(card);
-  card.setAttribute('tabindex', '-1');
-  card.focus({ preventScroll: true });
+  // A-3 (WCAG 2.1.1): Focus only the first card. Subsequent cards are announced
+  // via the polite aria-live region on #status-bar rather than stealing focus,
+  // so keyboard users are not pulled away from their current position.
+  if (seq === 1) {
+    card.setAttribute('tabindex', '-1');
+    card.focus({ preventScroll: true });
+  }
 
   // Called once OCR + contrast analysis completes
   function updateAnalysis(imageReports) {
@@ -478,7 +502,7 @@ function renderPost(post, images) {
 
     // Replace contrast placeholder with real results
     contrastWrap.innerHTML = '';
-    contrastWrap.appendChild(buildContrastSection(imageReports));
+    contrastWrap.appendChild(buildContrastSection(imageReports, seq));
   }
 
   // Build initial summary table (contrast unknown)
@@ -516,9 +540,10 @@ function buildSummaryTable(post, imageReports, altFail, altNA, contrastFail, con
   return table;
 }
 
-function buildAltSection(post, imageReports) {
-  const section = el('section', { className: 'image-section', 'aria-labelledby': 'alt-heading' });
-  section.appendChild(el('h3', { id: 'alt-heading', textContent: 'Image alt text' }));
+function buildAltSection(post, imageReports, seq) {
+  // ID suffixed with seq so each card's section heading is unique (A-2: WCAG 1.3.1).
+  const section = el('section', { className: 'image-section', 'aria-labelledby': `alt-heading-${seq}` });
+  section.appendChild(el('h3', { id: `alt-heading-${seq}`, textContent: 'Image alt text' }));
   if (imageReports.length === 0) {
     section.appendChild(el('p', { textContent: 'No media images found in this post.' }));
     return section;
@@ -552,9 +577,10 @@ function buildAltSection(post, imageReports) {
   return section;
 }
 
-function buildEmojiSection(post) {
-  const section = el('section', { className: 'image-section', 'aria-labelledby': 'emoji-heading' });
-  section.appendChild(el('h3', { id: 'emoji-heading', textContent: 'Emoji usage' }));
+function buildEmojiSection(post, seq) {
+  // ID suffixed with seq so each card's section heading is unique (A-2: WCAG 1.3.1).
+  const section = el('section', { className: 'image-section', 'aria-labelledby': `emoji-heading-${seq}` });
+  section.appendChild(el('h3', { id: `emoji-heading-${seq}`, textContent: 'Emoji usage' }));
   const p = el('p');
   if (post.emojiResult?.flag) {
     p.appendChild(badge('Flag', 'flag'));
@@ -574,9 +600,10 @@ function buildEmojiSection(post) {
   return section;
 }
 
-function buildFontSection(post) {
-  const section = el('section', { className: 'image-section', 'aria-labelledby': 'font-heading' });
-  section.appendChild(el('h3', { id: 'font-heading', textContent: 'Non-standard Unicode fonts' }));
+function buildFontSection(post, seq) {
+  // ID suffixed with seq so each card's section heading is unique (A-2: WCAG 1.3.1).
+  const section = el('section', { className: 'image-section', 'aria-labelledby': `font-heading-${seq}` });
+  section.appendChild(el('h3', { id: `font-heading-${seq}`, textContent: 'Non-standard Unicode fonts' }));
   const p = el('p');
   if (post.fontResult?.found) {
     p.appendChild(badge('Fail', 'fail'));
@@ -596,9 +623,10 @@ function buildFontSection(post) {
   return section;
 }
 
-function buildContrastSection(imageReports) {
-  const section = el('section', { className: 'image-section', 'aria-labelledby': 'contrast-heading' });
-  section.appendChild(el('h3', { id: 'contrast-heading', textContent: 'Image colour contrast' }));
+function buildContrastSection(imageReports, seq) {
+  // ID suffixed with seq so each card's section heading is unique (A-2: WCAG 1.3.1).
+  const section = el('section', { className: 'image-section', 'aria-labelledby': `contrast-heading-${seq}` });
+  section.appendChild(el('h3', { id: `contrast-heading-${seq}`, textContent: 'Image colour contrast' }));
   if (imageReports.length === 0) {
     section.appendChild(el('p', { textContent: 'No media images to analyse.' }));
     return section;
