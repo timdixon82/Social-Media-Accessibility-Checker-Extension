@@ -3,7 +3,7 @@
   "permissions": {
     "allow": [
       "mcp__plugin_chrome-devtools-mcp_chrome-devtools__take_screenshot",
-"Bash(ls)",
+      "Bash(ls)",
       "Bash(ls -*)",
       "Bash(ls /*)",
       "Bash(pwd)",
@@ -39,6 +39,24 @@
       "Bash(bash /Users/timdixon/Code/AgentTeam/scripts/*.sh *)",
       "Bash(grep *)",
       "Bash(find /Users/timdixon/Code/AgentTeam/* *)",
+      "Bash(cat /Users/timdixon/Code/*)",
+      "Bash(head /Users/timdixon/Code/*)",
+      "Bash(tail /Users/timdixon/Code/*)",
+      "Bash(diff /Users/timdixon/Code/*)",
+      "Bash(cmp /Users/timdixon/Code/*)",
+      "Bash(find /Users/timdixon/Code/* *)",
+      "Bash(realpath *)",
+      "Bash(sha256sum *)",
+      "Bash(shasum *)",
+      "Bash(awk *)",
+      "Bash(sed *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(cut *)",
+      "Bash(tr *)",
+      "Bash(comm *)",
+      "Bash(basename *)",
+      "Bash(dirname *)",
       "Bash(shellcheck *)",
       "Bash(semgrep scan *)",
       "Bash(npm --prefix * run lint)",
@@ -48,6 +66,8 @@
       "Bash(cp -R *)"
     ],
     "deny": [
+      "Bash(find * -exec *)",
+      "Bash(find * -delete *)",
       "Bash(git push --force*)",
       "Bash(git push -f*)",
       "Bash(git push * --force*)",
@@ -81,7 +101,7 @@
     ],
     "PostToolUse": [
       {
-        "matcher": "Bash|mcp__github.*",
+        "matcher": "Bash|Write|Edit|mcp__github.*",
         "hooks": [
           {
             "type": "command",

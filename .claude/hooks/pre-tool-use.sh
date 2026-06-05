@@ -164,10 +164,56 @@ _pushes_main() {
 }
 
 work_dir="$CLAUDE_PROJECT_DIR/.claude/work"
-if [ -f "$work_dir/.current" ]; then
+
+# Locate the active work folder using the path-index first (.current as fallback).
+#
+# The path-index (.claude/work/.path-index) maps folder names to repo paths.
+# We find all folders registered for the current repo root, then pick the one
+# whose log.md was most recently modified (mtime tiebreaker). This mirrors the
+# routing logic in subagent-stop.sh and post-tool-use.sh.
+# If the path-index yields nothing, fall back to .current as before.
+current_id=""
+path_index="$work_dir/.path-index"
+if [ -f "$path_index" ]; then
+  norm_proj=$(realpath "$CLAUDE_PROJECT_DIR" 2>/dev/null || printf '%s' "$CLAUDE_PROJECT_DIR")
+  norm_proj="${norm_proj%/}"
+  best_mt=0
+  # Deduplicate: last entry per folder-name wins. Skip comments and blank lines.
+  deduped=$(awk '
+    /^[[:space:]]*#/ { next }
+    NF == 2 { last[$1] = $2 }
+    END { for (f in last) print f, last[f] }
+  ' "$path_index" 2>/dev/null)
+  while IFS=' ' read -r fname rpath; do
+    [ -z "$fname" ] || [ -z "$rpath" ] && continue
+    # Validate folder slug (path-traversal defence).
+    case "$fname" in
+      [0-9][0-9][0-9]-*) : ;;
+      *) continue ;;
+    esac
+    [ -d "$work_dir/$fname" ] || continue
+    norm_rpath=$(realpath "$rpath" 2>/dev/null || printf '%s' "$rpath")
+    norm_rpath="${norm_rpath%/}"
+    [ "$norm_rpath" = "$norm_proj" ] || continue
+    logf="$work_dir/$fname/log.md"
+    [ -f "$logf" ] || continue
+    mt=$(stat -f '%m' "$logf" 2>/dev/null \
+      || stat -c '%Y' "$logf" 2>/dev/null \
+      || echo 0)
+    if [ "$mt" -gt "$best_mt" ] 2>/dev/null; then
+      best_mt="$mt"
+      current_id="$fname"
+    fi
+  done <<< "$deduped"
+fi
+
+# Fall back to .current if the path-index lookup yielded nothing.
+if [ -z "$current_id" ] && [ -f "$work_dir/.current" ]; then
   current_id=$(cat "$work_dir/.current" 2>/dev/null)
-  brief="$work_dir/$current_id/brief.md"
-  if [ -n "$current_id" ] && [ -f "$brief" ]; then
+fi
+
+brief="$work_dir/$current_id/brief.md"
+if [ -n "$current_id" ] && [ -f "$brief" ]; then
     approved=$(awk 'tolower($0) ~ /^#+ *approved github actions/{f=1;next} /^#+ /{f=0} f' "$brief")
     while IFS= read -r line; do
       # Keep only ticked lines: list marker then [x] or [X].
@@ -199,7 +245,6 @@ if [ -f "$work_dir/.current" ]; then
         decision allow "Pre-approved in the brief for work folder $current_id."
       fi
     done <<< "$approved"
-  fi
 fi
 
 # 3. Not deny-listed, not pre-approved: fall through to the normal prompt.

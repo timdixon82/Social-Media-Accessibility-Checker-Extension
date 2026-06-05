@@ -83,6 +83,12 @@ if [ -f "$tv_file" ]; then
   if [ ! -d "$master" ]; then
     echo "master path invalid, skipping sync check."
   else
+    # Guard: when this session IS the master, self-sync is meaningless.
+    _proj_real=$(realpath "$proj" 2>/dev/null || printf '%s' "$proj")
+    _master_real=$(realpath "$master" 2>/dev/null || printf '%s' "$master")
+    if [ "$_proj_real" = "$_master_real" ]; then
+      : # This session is the master itself — sync check not applicable.
+    else
     proj_v="$(cat "$tv_file" 2>/dev/null || echo unknown)"
     master_v="$(cat "$master/VERSION" 2>/dev/null || true)"
 
@@ -96,7 +102,6 @@ if [ -f "$tv_file" ]; then
     else
       echo "Template: in sync ($proj_v)."
     fi
-
     # ── sha256 parity check: detect silent local modification of the gate ───
     sha_file="$proj/.claude/template-hook-sha256"
     if [ -f "$sha_file" ]; then
@@ -128,7 +133,7 @@ if [ -f "$tv_file" ]; then
     if [ -f "$_pending_prefix_file" ]; then
       _pending_prefix="$(tr -d '[:space:]' < "$_pending_prefix_file" 2>/dev/null || true)"
       # Validate: must be 2-4 uppercase letters only (path-traversal guard).
-      if [ -n "$_pending_prefix" ] && printf '%s' "$_pending_prefix" | grep -qE '^[A-Z]{2,4}$'; then
+      if [ -n "$_pending_prefix" ] && printf '%s' "$_pending_prefix" | grep -qE '^[A-Z][A-Z0-9]{1,5}$'; then
         _pending_file="$master/outputs/project-pending/${_pending_prefix}.md"
         if [ -f "$_pending_file" ]; then
           # Count open entries. grep -c exits 1 with no matches — handle that.
@@ -155,9 +160,90 @@ if [ -f "$tv_file" ]; then
       fi
     fi
     # ── End pending tasks check ──────────────────────────────────────────────
+    fi # end self-guard (ADR-sync-self): sha256 and pending tasks skipped at master
   fi
 
 fi
+
+# ── Backport candidates from external projects (ADR-033-1 to ADR-033-6) ─────
+#
+# Pull model: AgentTeam reads .claude/backport-candidates.md from each
+# external project path listed in the path-index. Projects never write here.
+#
+# Five guards (ADR-033-5):
+#   A — validate each repo path with _session_validate_path and -d test.
+#   B — the only variable segment in the constructed file path is the
+#       validated repo path; the suffix /.claude/backport-candidates.md
+#       is a fixed literal with no untrusted token.
+#   C — read-only; descriptions are printed via printf '%s\n' with the
+#       value as a separate data argument — never source, eval, or
+#       printf "$desc".
+#   D — cap at 10 pending entries per project to bound startup cost.
+#   E — deduplicate on repo path and exclude the AgentTeam root before
+#       any file is opened (both filters run before the read loop).
+#
+# This block sits outside the template-stamp gate (ADR-033-6): the
+# AgentTeam root reads the path-index regardless of any template stamp.
+{
+  _bp_index="${proj}/.claude/work/.path-index"
+  if [ -f "$_bp_index" ]; then
+    # Normalise the AgentTeam root path for exclusion (Guard E).
+    _bp_self=$(realpath "$proj" 2>/dev/null || printf '%s' "$proj")
+    _bp_self="${_bp_self%/}"
+
+    # Extract the repo-path column (field 2), skip comment and blank lines,
+    # require exactly 2 fields (Guard: malformed lines skipped).
+    # Deduplicate on repo path (Guard E): last occurrence per path wins.
+    _bp_unique_paths=$(awk '
+      /^[[:space:]]*#/ { next }
+      NF == 2 { last[$2] = $2 }
+      END { for (p in last) print last[p] }
+    ' "$_bp_index" 2>/dev/null || true)
+
+    _bp_found_any=false
+    _bp_output=""
+
+    while IFS= read -r _bp_rpath; do
+      [ -z "$_bp_rpath" ] && continue
+
+      # Guard E: exclude the AgentTeam root itself.
+      _bp_norm=$(realpath "$_bp_rpath" 2>/dev/null || printf '%s' "$_bp_rpath")
+      _bp_norm="${_bp_norm%/}"
+      [ "$_bp_norm" = "$_bp_self" ] && continue
+
+      # Guard A: validate path shape (no whitespace, quotes, $, backtick, ;).
+      _session_validate_path "$_bp_norm" || continue
+
+      # Guard A: must be an existing directory.
+      [ -d "$_bp_norm" ] || continue
+
+      # Guard B: the only variable segment is the validated _bp_norm.
+      _bp_candidates="${_bp_norm}/.claude/backport-candidates.md"
+      [ -f "$_bp_candidates" ] || continue
+
+      # Filter for open entries only (^- \[ \]).
+      # Guard D: cap at 10 entries per project.
+      _bp_entries=$(grep -E '^- \[ \] ' "$_bp_candidates" 2>/dev/null \
+        | head -10 || true)
+      [ -z "$_bp_entries" ] && continue
+
+      _bp_count=$(printf '%s\n' "$_bp_entries" | grep -c '^- \[ \] ' 2>/dev/null || true)
+      _bp_project_name=$(basename "$_bp_norm")
+
+      _bp_found_any=true
+      # Guard C: print descriptions via printf '%s\n' with value as data arg.
+      printf 'Backport candidates from %s (%d item(s)):\n' \
+        "$_bp_project_name" "${_bp_count:-0}"
+      while IFS= read -r _bp_entry; do
+        [ -z "$_bp_entry" ] && continue
+        _bp_desc="${_bp_entry#'- [ ] '}"
+        printf '  - %s\n' "$_bp_desc"
+      done <<< "$_bp_entries"
+
+    done <<< "$_bp_unique_paths"
+  fi
+} 2>/dev/null || true
+# ── End backport candidates check ────────────────────────────────────────────
 
 work_dir="$proj/.claude/work"
 if [ -d "$work_dir" ]; then

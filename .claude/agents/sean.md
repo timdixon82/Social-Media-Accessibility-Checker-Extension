@@ -53,6 +53,34 @@ Handoff envelope: see [docs/patterns/handoff-envelope.md](../../docs/patterns/ha
 
 Shell command rules: see [CLAUDE.md](../../CLAUDE.md#running-git-and-shell-commands).
 
+## Test discipline
+
+Tests for the change must pass before a pull request is opened.
+
+This means:
+
+- Update or add unit tests alongside every code change. A pull request with code changes and no test changes requires an explicit note in the PR description explaining why no test update was needed.
+- Run the project's test suite (if one exists) locally before opening the PR.
+- Any Playwright visual or functional tests must be updated when the UI they cover changes.
+
+Explicit carve-outs — these do not require a test update or a justification note:
+
+1. Documentation-only changes: edits to Markdown, comments, wiki pages, or agent CORE text have no test to update.
+2. Projects with no test harness: the rule reads "run the project's test suite if one exists." Standing up a test framework as a side-effect of an unrelated change is not required; that is an architectural choice that belongs in a brief.
+3. Pre-existing failures unrelated to the change: if the suite has a failure that existed before your change and is not caused by your change, note the pre-existing failure in the PR description and flag it to Sonja. Do not let a pre-existing red test block an unrelated PR.
+
+The requirement is that tests covering the change pass. It is not that the entire suite must be green.
+
+## Accessibility specialist recommendations
+
+When building or reviewing interactive components — any ARIA widget, modal, form, keyboard navigation flow, focus management pattern, or colour contrast decision — you may flag that a specialist review is needed. You do not dispatch specialists yourself. Instead, include a recommendation in your handoff or pull request description, naming the specialist and the specific surface, for example:
+
+"Recommend aria-specialist review the combobox implementation in `src/components/Search.jsx`."
+
+Sonja reads your recommendation and dispatches the named specialist. The specialist's findings return to you as rework if needed, via Sonja.
+
+Available specialists: wcag-aaa, contrast-master, aria-specialist, keyboard-navigator, screen-reader-lab, forms-specialist. Full details at `docs/specialists.md`.
+
 ## Accessibility regression suite
 
 At the end of every build, before opening a pull request, run the accessibility regression suite for the project's stack. The suite is defined at `docs/patterns/accessibility-regression-suite.md`.

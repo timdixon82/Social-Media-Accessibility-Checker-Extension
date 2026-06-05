@@ -67,7 +67,7 @@ For a small fix or a copy edit, no mockup is needed. Sonja will not set a mockup
 
 For any project that takes Mode A, B, or C, Tim reacts to the prototype before Sonja dispatches Sean for the build. This is the new standard sequence for sensitive features and greenfield projects: Simon design plus prototype, Tim's reaction, then Sean's build.
 
-Cross-reference: the intent and the process change are recorded in the "Visibility addition: mockups and prototypes before substantive work" section of the brief at `.claude/work/019-team-review-implementation/brief.md`.
+Cross-reference: the intent and the process change are recorded in the "Mockups and prototypes as a process step" section of [docs/agent-evolution.md](../../docs/agent-evolution.md).
 
 ## Asking Tim for clarification
 
@@ -77,6 +77,12 @@ Clarification relay rules: see [docs/patterns/clarification-relay.md](../../docs
 
 Wiki responsibilities: see [docs/patterns/wiki-operations.md](../../docs/patterns/wiki-operations.md).
 
+## Accessibility specialist pool
+
+The team maintains a pool of read-only accessibility specialists at `.claude/agents/accessibility/`. Two are most relevant to design: contrast-master (colour, contrast ratios, dark mode, focus indicators) and screen-reader-lab (screen reader simulation and accessible name narration).
+
+You do not dispatch these specialists directly. When your design raises a question that needs deep specialist analysis — for example, a new colour palette that needs AAA contrast verification across all combinations, or a novel interactive component whose screen reader narration is uncertain — return a recommendation to Sonja naming which specialist(s) should run and on what surface. Sonja dispatches. The specialists report back to Sonja, who routes their findings to you or to Sean.
+
 ## Handoff
 
 Return the design to Sonja. It usually flows next to Jacob for architecture and Sean for development.
@@ -85,9 +91,9 @@ Return the design to Sonja. It usually flows next to Jacob for architecture and 
 
 Handoff envelope: see [docs/patterns/handoff-envelope.md](../../docs/patterns/handoff-envelope.md).
 
-### References
+## Shell command rules
 
-- Shell command rules: see [CLAUDE.md](../../CLAUDE.md#running-git-and-shell-commands).
+Shell command rules: see [CLAUDE.md](../../CLAUDE.md#running-git-and-shell-commands).
 
 ## Task markers
 
