@@ -8,7 +8,8 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       font-size: 14px;
-      width: 300px;
+      min-width: 300px;
+      max-width: 100%;
       padding: 16px;
       margin: 0;
       color: #1a1a1a;
@@ -18,7 +19,7 @@
 
     /* Platform selector */
     fieldset {
-      border: 1px solid #ccc;
+      border: 1px solid #767676; /* #767676 on #fff = 4.54:1 — passes WCAG SC 1.4.11 Non-text Contrast (3:1) */
       border-radius: 6px;
       padding: 10px 12px;
       margin: 0 0 14px;
@@ -39,15 +40,15 @@
       cursor: pointer;
     }
     .platform-list label.disabled {
-      color: #999;
+      color: #595959; /* #595959 on #fff = 7.0:1 — passes WCAG 2.2 AAA (7:1) */
       cursor: not-allowed;
     }
     .platform-list input[type="radio"]:disabled + span {
-      color: #999;
+      color: #595959; /* #595959 on #fff = 7.0:1 — passes WCAG 2.2 AAA (7:1) */
     }
     .coming-soon {
       font-size: 11px;
-      color: #999;
+      color: #595959; /* #595959 on #fff = 7.0:1 — passes WCAG 2.2 AAA (7:1) */
       font-style: italic;
     }
 
@@ -81,12 +82,12 @@
       cursor: pointer;
     }
     button#run-btn:hover:not(:disabled) { background: #004182; }
-    button#run-btn:focus-visible { outline: 3px solid #0a66c2; outline-offset: 2px; }
+    button#run-btn:focus-visible { outline: 3px solid #ffffff; outline-offset: 2px; }
     button#run-btn:disabled { background: #aaa; cursor: not-allowed; }
 
     /* Error */
     #error {
-      color: #c00;
+      color: #990000; /* #990000 on #fff = 8.9:1 — passes WCAG 2.2 AAA (7:1) */
       font-size: 13px;
       margin-top: 10px;
       display: none;
@@ -95,16 +96,20 @@
     /* Version */
     #version {
       font-size: 11px;
-      color: #999;
+      color: #575757; /* #575757 on #fff = 7.3:1 — passes WCAG 2.2 AAA (7:1) */
       text-align: right;
       margin-top: 10px;
     }
 
     /* Focus styles for all interactive elements */
     :focus-visible { outline: 3px solid #0a66c2; outline-offset: 2px; }
+
+    /* Main landmark — block, no extra spacing so layout is unchanged */
+    main { display: block; padding: 0; margin: 0; }
   </style>
 </head>
 <body>
+  <main>
   <h1>Social Media Post Accessibility Checker</h1>
 
   <fieldset>
@@ -159,6 +164,8 @@
   <button id="run-btn" type="button">Run Audit</button>
   <div id="error" role="alert" aria-live="assertive"></div>
   <div id="version" aria-label="Extension version"></div>
+
+  </main>
 
   <script src="popup.js"></script>
 </body>

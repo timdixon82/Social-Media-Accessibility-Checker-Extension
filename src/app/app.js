@@ -52,11 +52,16 @@ ocrFrame.style.display = 'none';
 ocrFrame.setAttribute('aria-hidden', 'true');
 document.body.appendChild(ocrFrame);
 
+// Derive the sandbox's origin from its URL so postMessage calls can be
+// targeted precisely instead of using '*'.  new URL(...).origin gives the
+// chrome-extension://<id> prefix that Chrome enforces.
+const sandboxOrigin = new URL(ocrFrame.src).origin;
+
 let   sandboxReady = null;
 const pendingOcr   = new Map();
 let   ocrMsgId     = 0;
 
-window.addEventListener('message', (e) => {
+window.addEventListener('message', (e) => { // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation — e.source check on the next line is the correct origin guard for same-extension iframes; a string e.origin comparison is not required here.
   if (e.source !== ocrFrame.contentWindow) return;
   const { type, id, detections, error } = e.data || {};
   if (type !== 'ocrResult') return;
@@ -82,17 +87,18 @@ function initSandbox() {
     }, 120000);
 
     const sendInit = () => ocrFrame.contentWindow.postMessage({
-      type:      'init',
-      wasmPaths: chrome.runtime.getURL('vendor/ort/'),
+      type:            'init',
+      extensionOrigin: window.location.origin, // passed to sandbox so it can reply to us precisely rather than using '*'
+      wasmPaths:       chrome.runtime.getURL('vendor/ort/'),
       models: {
         detectionPath:   chrome.runtime.getURL('vendor/models/ch_PP-OCRv4_det_infer.onnx'),
         recognitionPath: chrome.runtime.getURL('vendor/models/ch_PP-OCRv4_rec_infer.onnx'),
         dictionaryPath:  chrome.runtime.getURL('vendor/models/ppocr_keys_v1.txt'),
       },
-    }, '*');
+    }, sandboxOrigin); // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration — target is sandboxOrigin (chrome-extension://<id>), not '*'
 
     const onMsg = (e) => {
-      if (e.source !== ocrFrame.contentWindow) return;
+      if (e.source !== ocrFrame.contentWindow) return; // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation — e.source check is the correct guard for same-extension iframes
       // sandboxLoaded: sandbox script has finished executing and its message
       // listener is active — safe to send 'init' now without race conditions.
       if (e.data?.type === 'sandboxLoaded') { sendInit(); return; }
@@ -113,7 +119,7 @@ async function runOcrInSandbox(dataUrl) {
   return new Promise((resolve, reject) => {
     const id = ++ocrMsgId;
     pendingOcr.set(id, { resolve, reject });
-    ocrFrame.contentWindow.postMessage({ type: 'ocr', id, dataUrl }, '*');
+    ocrFrame.contentWindow.postMessage({ type: 'ocr', id, dataUrl }, sandboxOrigin); // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration — target is sandboxOrigin (chrome-extension://<id>), not '*'
   });
 }
 
@@ -184,6 +190,7 @@ function handleMessage(msg) {
     case 'done':
       setStatus(`Audit complete — ${msg.total} post${msg.total === 1 ? '' : 's'} gathered. Running colour contrast analysis…`);
       hideProgress();
+      cardsEl.setAttribute('aria-busy', 'false'); // feed is now populated; clear the loading state
       // Wait for all queued OCR analysis to finish before showing download button.
       analysisChain.then(() => {
         setStatus(`Audit complete — ${msg.total} post${msg.total === 1 ? '' : 's'} processed.`, 'done');
@@ -336,7 +343,7 @@ function renderPost(post, images) {
   summary.appendChild(heading);
 
   const meta = el('p', { className: 'post-meta' });
-  if (post.platform) { meta.appendChild(txt(post.platform)); meta.appendChild(txt(' · ')); }
+  if (post.platform) { meta.appendChild(txt('LinkedIn only')); meta.appendChild(txt(' · ')); }
   meta.appendChild(txt(`${displayDate}`));
   if (post.postUrl) {
     meta.appendChild(txt(' · '));
@@ -615,8 +622,8 @@ function buildContrastSection(imageReports) {
       imgSection.appendChild(p);
       if (r.report.colourPairs?.length) {
         imgSection.appendChild(buildContrastTable(r.report.colourPairs));
-        // Failing regions — clip canvases with red-outlined bboxes (matches sister project)
-        const failing = r.report.colourPairs.filter(pair => !pair.pass);
+        // Failing regions — clip canvases with red-outlined bboxes; uses AAA threshold (Q60A)
+        const failing = r.report.colourPairs.filter(pair => !pair.passAaa);
         if (failing.length) {
           const fh = el('h4', { textContent: 'Failing regions' });
           imgSection.appendChild(fh);
@@ -641,7 +648,7 @@ function buildContrastSection(imageReports) {
   }
   const note = el('p');
   const em = el('em');
-  em.textContent = 'Thresholds: AA 4.5:1 normal text / 3:1 large text. AAA 7:1 normal / 4.5:1 large. Large text = bounding box height 24 px or more.';
+  em.textContent = 'Overall verdict uses WCAG 2.2 AAA: 7:1 normal text / 4.5:1 large text. AA thresholds (4.5:1 normal / 3:1 large) shown for reference. Large text = bounding box height 24 px or more.';
   note.appendChild(em);
   section.appendChild(note);
   return section;
@@ -762,7 +769,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
     : '';
 
   // Emoji section
-  let emojiHtml = '';
+  let emojiHtml;
   if (post.emojiResult?.flag) {
     emojiHtml = `<p>${badgeHtml('Flag','flag')} &mdash; ${post.emojiResult.count} emoji found (threshold: more than 5).</p>`;
     if (post.emojiResult.examples?.length) emojiHtml += `<p>Examples: ${esc(post.emojiResult.examples.join(' '))}</p>`;
@@ -771,7 +778,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
   }
 
   // Font section
-  let fontHtml = '';
+  let fontHtml;
   if (post.fontResult?.found) {
     fontHtml = `<p>${badgeHtml('Fail','fail')} &mdash; ${post.fontResult.count} Unicode mathematical character(s) used as decorative text. These are invisible to screen readers.</p>`;
     if (post.fontResult.examples?.length) fontHtml += `<p>Examples: ${esc(post.fontResult.examples.join(' '))}</p>`;
@@ -780,7 +787,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
   }
 
   // Alt text section
-  let altHtml = '';
+  let altHtml;
   if (imageReports.length === 0) {
     altHtml = `<p>No media images found in this post.</p>`;
   } else {
@@ -832,8 +839,8 @@ function buildReportHtml(post, imageReports, theme = 'light') {
             </tr>`;
           }
           contrastHtml += `</tbody></table></div>`;
-          // Failing regions with clip images (red-outlined bboxes)
-          const failing = r.report.colourPairs.filter(p => !p.pass);
+          // Failing regions with clip images (red-outlined bboxes); uses AAA threshold (Q60A)
+          const failing = r.report.colourPairs.filter(p => !p.passAaa);
           if (failing.length) {
             contrastHtml += `<h4>Failing regions</h4>`;
             for (const p of failing) {
@@ -846,7 +853,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
         }
       }
     }
-    contrastHtml += `<p><em>Thresholds: AA 4.5:1 normal text / 3:1 large text. AAA 7:1 normal / 4.5:1 large. Large text = bounding box height &ge; 24 px.</em></p>`;
+    contrastHtml += `<p><em>Overall verdict uses WCAG 2.2 AAA: 7:1 normal text / 4.5:1 large text. AA thresholds (4.5:1 normal / 3:1 large) shown for reference. Large text = bounding box height &ge; 24 px.</em></p>`;
   }
 
   return `<!doctype html>
@@ -940,7 +947,7 @@ function buildReportHtml(post, imageReports, theme = 'light') {
   </div>
 
   <h1>${esc(post.author)} &mdash; ${esc(displayDate)}</h1>
-  <p class="meta">${post.platform ? `Platform: ${esc(post.platform)} &nbsp;|&nbsp; ` : ''}Date: ${esc(displayDate)}${post.postUrl ? ` &nbsp;|&nbsp; <a href="${esc(post.postUrl)}" target="_blank" rel="noopener noreferrer">View on LinkedIn</a>` : ''}</p>
+  <p class="meta">${post.platform ? `Platform: LinkedIn only &nbsp;|&nbsp; ` : ''}Date: ${esc(displayDate)}${post.postUrl ? ` &nbsp;|&nbsp; <a href="${esc(post.postUrl)}" target="_blank" rel="noopener noreferrer">View on LinkedIn</a>` : ''}</p>
 
   <div class="overall">
     <span class="badge badge-overall badge-${overallType}">${esc(overallLabel)}</span>

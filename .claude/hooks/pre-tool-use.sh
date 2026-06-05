@@ -87,14 +87,14 @@ fi
 # Deny-list patterns, anchored to syntax.
 # Force-push: --force, --force-with-lease, and the short -f flag (with or without
 # other arguments between 'push' and '-f').
-denylist='force.?push|push [^|]*--force|push [^|]*-f( |$)|push [^|]*--force-with-lease'
+denylist='force.?push|push [^|]*--force|push [^|]*-f( |$)|push [^|]*--force-with-lease|push [^|]* \+[^ ]*'
 # History rewrite
 denylist="$denylist"'|filter-branch|filter-repo|reset [^|]*--hard|(^| )rebase( |$)'
 # Branch removal.
 # The ' :[^ /]' alternative (space before colon) catches the delete-by-empty-refspec
 # syntax 'push origin :branch-name' without catching 'push origin HEAD:main', where
 # the colon is not preceded by a space.
-denylist="$denylist"'|branch [^|]*-[dD]( |$)|branch [^|]*--delete|push [^|]*--delete|push [^|]* :[^ /]|mcp__github__delete_branch'
+denylist="$denylist"'|branch [^|]*-[dD]( |$)|branch [^|]*--delete|push [^|]*--delete|push [^|]*-[dD]( |$)|push [^|]* :[^ /]|mcp__github__delete_branch'
 # Repository removal (gh CLI and GitHub MCP server)
 denylist="$denylist"'|repo delete|mcp__github__delete_repository'
 # Visibility or transfer change (gh CLI and GitHub MCP server)
@@ -110,6 +110,14 @@ denylist="$denylist"'|release delete|mcp__github__delete_release'
 denylist="$denylist"'|disable[^|]*scan|scanning[^|]*disable|mcp__github__disable_secret_scanning|mcp__github__disable_code_scanning'
 
 if printf '%s' "$scan_text" | grep -qiE "$denylist"; then
+  decision deny "Blocked by the hard deny-list in CLAUDE.md. Force-push, branch or repository deletion, history rewrite, visibility or branch-protection change, collaborator change, release deletion, and disabling scanning are never permitted."
+fi
+
+# Also scan the raw action for deny-list patterns that bypass quoting.
+# These patterns are tightly anchored to flag syntax; they cannot fire on
+# commit messages because commit messages follow -m and are not git push/branch/reset/rebase calls.
+raw_denylist='push [^|]*['"'"'"]--force['"'"'"]|push [^|]*['"'"'"]-f['"'"'"]( |$)|bash[^|]*-c[^|]*(push[^|]*--force|push[^|]*-f )'
+if printf '%s' "$action" | grep -qiE "$raw_denylist"; then
   decision deny "Blocked by the hard deny-list in CLAUDE.md. Force-push, branch or repository deletion, history rewrite, visibility or branch-protection change, collaborator change, release deletion, and disabling scanning are never permitted."
 fi
 
@@ -152,7 +160,7 @@ pat[5]='(^| )gh issue create( |$)|mcp__github__create_issue'
 _pushes_main() {
   local cmd="$1"
   printf '%s' "$cmd" | grep -qiE \
-    'push [^ ]* (main|master)( |$)|push [^ ]* [^ ]*:(main|master)( |$)|push [^ ]*:(main|master)( |$)|push [^ ]*:?HEAD:(main|master)( |$)'
+    'push [^ ]* ["\x27]?(main|master)["\x27]?( |$)|push [^ ]* [^ ]*:["\x27]?(main|master)["\x27]?( |$)|push [^ ]*:["\x27]?(main|master)["\x27]?( |$)|push [^ ]*:?HEAD:["\x27]?(main|master)["\x27]?( |$)'
 }
 
 work_dir="$CLAUDE_PROJECT_DIR/.claude/work"
