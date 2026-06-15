@@ -2,10 +2,6 @@
 #
 # Action versions were verified against GitHub and pinned to commit SHAs
 # on 2026-05-21. The version tag is in the trailing comment.
-#
-# Dependency review requires GitHub Advanced Security. This repository is
-# public, so the job runs. Remove it if the repository is made private
-# on a plan without GitHub Advanced Security.
 
 name: Security
 on:
@@ -46,3 +42,6 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294  # v5.0.0
+
+  # Note for PHP projects: CodeQL does not support PHP. Add a PHP static
+  # analysis job here, for example PHPStan or Psalm, in place of CodeQL.

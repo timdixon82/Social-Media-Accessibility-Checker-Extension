@@ -2,14 +2,6 @@
 #
 # Action versions were verified against GitHub and pinned to commit SHAs
 # on 2026-05-21. The version tag is in the trailing comment.
-#
-# No untrusted GitHub event input is used in any run: step.
-#
-# Distribution: SMACE is distributed as a locally loaded Chrome extension.
-# There is no automated Chrome Web Store upload. When release-please creates
-# a release, download the source ZIP from the GitHub Release, extract it,
-# and load it unpacked via chrome://extensions. A packaging workflow that
-# builds and attaches a dist/ ZIP to the release can be added here later.
 
 name: Release
 on:
@@ -31,3 +23,11 @@ jobs:
           # GitHub Actions on every run. No manual token configuration or
           # repository secret is required.
           token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      # Deploy step: this is a stub. Fill it in with the project's hosting
+      # target. GitHub Pages for a static project; the Amazon Web Services
+      # Lightsail virtual private server running Virtualmin for a PHP and
+      # MariaDB project. Deploy only when release-please has created a
+      # release.

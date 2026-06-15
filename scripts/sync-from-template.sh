@@ -19,6 +19,13 @@
 #     .github/workflows/          — CI/CD workflow definitions
 #     .github/accessibility-tools/ — accessibility tooling
 #
+#   Pass 1.5 — agent frontmatter sync:
+#     .claude/agents/*.md   — the YAML frontmatter (between --- delimiters)
+#                             and any heading text before <!-- BEGIN CORE -->
+#                             are replaced from the master. skills:, tools:,
+#                             color:, model:, and permissionMode: all flow
+#                             through. PROJECT OVERLAY is never touched.
+#
 #   Pass 2 — CORE-section update (preserves PROJECT OVERLAY):
 #     .claude/agents/*.md   — only the <!-- BEGIN CORE --> … <!-- END CORE -->
 #                             block is replaced; the PROJECT OVERLAY section
@@ -414,10 +421,95 @@ else
   echo "  skipped:   .github/accessibility-tools/ (same reason)"
 fi
 
+# ── Pass 1.5: agent frontmatter sync ─────────────────────────────────────────
+#
+# Updates the YAML frontmatter (between the --- delimiters) and any heading text
+# between the frontmatter and <!-- BEGIN CORE --> in each agent file.
+# The CORE block and PROJECT OVERLAY section are not touched here; they are
+# handled by Pass 2 and preserved respectively.
+#
+# This pass fixes the gap where skills:, tools:, color:, model:, and other
+# frontmatter fields added to the master template did not flow through to
+# project repos on sync.
+
+echo ""
+echo "Pass 1.5: agent frontmatter sync"
+
+_update_frontmatter() {
+  local tfile="$1"
+  local pfile="$2"
+  local display="$3"
+
+  # New agent files are handled wholesale by Pass 2's _update_core; skip here.
+  if [ ! -f "$pfile" ]; then
+    return
+  fi
+
+  # Extract everything before <!-- BEGIN CORE --> from the template.
+  local tmpl_pre
+  tmpl_pre="$(mktemp)"
+  awk '/<!-- BEGIN CORE -->/{exit} {print}' "$tfile" > "$tmpl_pre"
+
+  if [ ! -s "$tmpl_pre" ]; then
+    rm -f "$tmpl_pre"
+    echo "  WARNING: no pre-CORE content found in template $display; skipping"
+    return
+  fi
+
+  # Extract the same section from the project file for comparison.
+  local proj_pre
+  proj_pre="$(mktemp)"
+  awk '/<!-- BEGIN CORE -->/{exit} {print}' "$pfile" > "$proj_pre"
+
+  if cmp -s "$tmpl_pre" "$proj_pre"; then
+    rm -f "$tmpl_pre" "$proj_pre"
+    echo "  unchanged: $display"
+    return
+  fi
+
+  rm -f "$proj_pre"
+
+  # Build the replacement: template preamble + project content from <!-- BEGIN CORE --> onward.
+  local tmp
+  tmp="$(mktemp)"
+  cat "$tmpl_pre" > "$tmp"
+  awk 'found || /<!-- BEGIN CORE -->/{found=1; print}' "$pfile" >> "$tmp"
+  rm -f "$tmpl_pre"
+
+  if cmp -s "$pfile" "$tmp"; then
+    rm -f "$tmp"
+    echo "  unchanged: $display"
+  else
+    mv "$tmp" "$pfile"
+    echo "  updated:   $display (frontmatter synced from master)"
+    changed=$((changed + 1))
+  fi
+}
+
+for tfile in "$template"/.claude/agents/*.md; do
+  [ -f "$tfile" ] || continue
+  name="$(basename "$tfile")"
+  pfile="$project_root/.claude/agents/$name"
+  _update_frontmatter "$tfile" "$pfile" ".claude/agents/$name"
+done
+
+# Subdirectory agent files (kept for extensibility; currently none exist).
+for tfile in "$template"/.claude/agents/*/*.md; do
+  [ -f "$tfile" ] || continue
+  subdir="$(basename "$(dirname "$tfile")")"
+  name="$(basename "$tfile")"
+  pfile="$project_root/.claude/agents/$subdir/$name"
+  _update_frontmatter "$tfile" "$pfile" ".claude/agents/$subdir/$name"
+done
+
 # ── Pass 2: agent CORE sections ───────────────────────────────────────────────
 #
-# Walks .claude/agents/*.md (the eight core agents) and any subdirectory agent
-# files that carry a <!-- BEGIN CORE --> block (e.g. .claude/agents/accessibility/).
+# Walks .claude/agents/*.md (all agents — core and specialist) and any subdirectory
+# agent files that carry a <!-- BEGIN CORE --> block. All accessibility specialist
+# agents (aria-specialist, contrast-master, forms-specialist, keyboard-navigator,
+# screen-reader-lab, wcag-aaa) now live at the top level of .claude/agents/ so
+# Claude Code discovers them automatically. The subdirectory loop below is kept
+# for extensibility but currently finds no files.
 # Files without a CORE block are skipped with a warning, so non-CORE specialist
 # files (plain markdown, manifests, LICENCE) are never accidentally modified.
 
@@ -480,7 +572,8 @@ for tfile in "$template"/.claude/agents/*.md; do
   _update_core "$tfile" "$pfile" ".claude/agents/$name"
 done
 
-# Specialist agents in subdirectories of .claude/agents/ (e.g. accessibility/).
+# Specialist agents in subdirectories of .claude/agents/ (kept for extensibility;
+# no subdirectory agents exist since accessibility agents were flattened in v1.5.7).
 # Only .md files that contain a CORE block are processed; the helper skips
 # those without one, so plain manifests, LICENCE files, and README files
 # in subdirectories are never touched.
