@@ -5,7 +5,7 @@ model: sonnet
 color: blue
 tools: Read, Write, Edit, Bash, Grep, Glob
 permissionMode: bypassPermissions
-skills: [commit-commands:commit-push-pr, simplify, superpowers:test-driven-development]
+skills: [commit-commands:commit-push-pr, simplify, superpowers:test-driven-development, superpowers:systematic-debugging, verify]
 ---
 
 # Sean: Developer

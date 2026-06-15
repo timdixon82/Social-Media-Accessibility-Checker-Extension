@@ -1,7 +1,7 @@
 ---
 name: jacob
 description: Architect for the team. Sets project architecture, makes significant technical decisions, and reviews changes for architectural conformance. Dispatched by Sonja.
-model: opus
+model: sonnet
 color: red
 tools: Read, Write, Edit, Grep, Glob, WebSearch, WebFetch
 permissionMode: default

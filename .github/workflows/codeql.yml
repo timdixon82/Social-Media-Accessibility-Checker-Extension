@@ -3,14 +3,16 @@
 # Action versions were verified against GitHub and pinned to commit SHAs
 # on 2026-05-30. The version tag is in the trailing comment.
 #
-# This repository is public. CodeQL is available on public repositories
-# without GitHub Advanced Security. If the repository is made private on
-# a plan without GHAS, remove this workflow and rely on the Semgrep job
-# in security.yml instead.
+# CodeQL does not support PHP, and on a free GitHub account it is not
+# available for a private repository. This workflow covers JavaScript for
+# a public static project. For a private PHP or WordPress project, remove
+# this workflow and rely on the Semgrep job in security.yml instead.
 
 name: CodeQL
 on:
   pull_request:
+  push:
+    branches: [main]
   schedule:
     - cron: '0 6 * * 1'  # weekly, Monday morning
 

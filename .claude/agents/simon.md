@@ -5,7 +5,7 @@ model: sonnet
 color: pink
 tools: Read, Write, Edit, Grep, Glob
 permissionMode: default
-skills: [chrome-devtools-mcp:a11y-debugging, frontend-design, canvas-design, brand-guidelines]
+skills: [frontend-design, canvas-design, brand-guidelines, tim-dixon-design]
 ---
 
 # Simon: Designer
