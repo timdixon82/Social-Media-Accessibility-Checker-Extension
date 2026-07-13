@@ -1,3 +1,10 @@
+# ── PRIVATE REPOS: REMOVE THIS WORKFLOW ────────────────────────────────────────
+# CodeQL requires GitHub Advanced Security. On a private repository without
+# Advanced Security enabled, this workflow will fail with a 403 error.
+# Delete this file from any private project repository.
+# Keep it only for public repos or private repos with Advanced Security enabled.
+# ───────────────────────────────────────────────────────────────────────────────
+
 # CodeQL static analysis.
 #
 # Action versions were verified against GitHub and pinned to commit SHAs
