@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   semgrep:
     runs-on: ubuntu-latest
@@ -52,6 +56,13 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294  # v5.0.0
+        # There is nothing to diff without a manifest and lockfile; skip
+        # rather than fail or no-op unpredictably on a static-content
+        # project. hashFiles is only valid at step level, not job level, so
+        # the gate lives here rather than on the job's own "if:". Semgrep
+        # and Trivy above need no such gate; both are filesystem scans that
+        # already work without a manifest.
+        if: hashFiles('package.json') != '' || hashFiles('composer.json') != ''
 
   # Note for PHP projects: CodeQL does not support PHP. Add a PHP static
   # analysis job here, for example PHPStan or Psalm, in place of CodeQL.
