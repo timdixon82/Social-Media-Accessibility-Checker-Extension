@@ -1,7 +1,7 @@
 {
   "name": "linkedin-accessibility-auditor",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Chrome extension: WCAG accessibility auditor for LinkedIn posts.",
   "license": "MIT",
   "author": "Tim Dixon",
