@@ -28,7 +28,19 @@
 # Pa11y and axe-core run against the served HTML; full rendered-interface
 # testing is Carol's responsibility in her manual test pass.
 #
-# Adapt the "Serve the site" step and URLs to this project's stack.
+# Serving is archetype-aware, gated on manifest presence (mirrors the
+# hashFiles('package.json') pattern in ci.yml and security.yml; hashFiles is
+# step-level only, not valid at job level):
+#   - package.json present (static-app, browser-extension): the project is
+#     installed and built (npm ci, then npm run build --if-present) and the
+#     dist/ build output is served, since a bundler's index.html loads bare
+#     ES module imports that only resolve after a build.
+#   - package.json absent (static-content): the repository root is served
+#     unchanged, as before.
+# dist/ is the template default build output directory (Vite's default). A
+# project whose bundler writes elsewhere overrides this step locally.
+# If a project's entry point is not index.html, adapt the Pa11y and axe URLs
+# below to match.
 
 name: Accessibility
 on:
@@ -36,6 +48,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   accessibility:
@@ -65,10 +81,25 @@ jobs:
         with:
           install-chromedriver: true
 
-      - name: Serve the site in the background
-        # Adapt this step to the project's stack.
-        # For a static site: python3 -m http.server 8080 &
-        # For a Node project: npm start & or npm run dev &
+      - name: Install project dependencies (npm)
+        # Only for static-app / browser-extension projects (package.json at
+        # the repository root). A build is required before serving because
+        # a bundler's index.html loads ES module imports that only resolve
+        # once built.
+        if: hashFiles('package.json') != ''
+        run: npm ci
+
+      - name: Build the project (npm)
+        # --if-present no-ops when the project has no "build" script.
+        if: hashFiles('package.json') != ''
+        run: npm run build --if-present
+
+      - name: Serve the built site in the background (static-app / browser-extension)
+        if: hashFiles('package.json') != ''
+        run: python3 -m http.server 8080 --directory dist &
+
+      - name: Serve the site in the background (static-content)
+        if: hashFiles('package.json') == ''
         run: python3 -m http.server 8080 &
 
       - name: Wait for the server to be ready
@@ -85,7 +116,11 @@ jobs:
         # --chrome-path overrides ChromeDriver's hardcoded binary lookup with the
         # action-installed Chrome, ensuring version parity with --chromedriver-path.
         # env: pattern used so no ${{ }} expression appears in a run: command.
+        # --exit (pinned @axe-core/cli 4.11.3 supports -q/--exit) makes the CLI
+        # itself exit 1 when any violation is found. Without it axe always exits
+        # 0, so this step would report violations in the log but still pass the
+        # job — a false-green gate.
         env:
           CHROMEDRIVER_PATH: ${{ steps.chrome.outputs.chromedriver-path }}
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
-        run: axe http://localhost:8080/index.html --tags wcag2a,wcag2aa,wcag2aaa,wcag22aa,wcag22aaa --chrome-options="no-sandbox" --chromedriver-path "$CHROMEDRIVER_PATH" --chrome-path "$CHROME_PATH"
+        run: axe http://localhost:8080/index.html --tags wcag2a,wcag2aa,wcag2aaa,wcag22aa,wcag22aaa --chrome-options="no-sandbox" --chromedriver-path "$CHROMEDRIVER_PATH" --chrome-path "$CHROME_PATH" --exit
