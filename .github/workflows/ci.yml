@@ -61,6 +61,18 @@ jobs:
         if: hashFiles('playwright.config.js', 'playwright.config.ts', 'playwright.config.mjs') != ''
         run: npx playwright install --with-deps
 
+      - name: Build (npm)
+        # --if-present no-ops when the project has no "build" script, for
+        # a small static project that needs no bundler. Runs before the
+        # test step because some projects' test suites (Playwright-based
+        # archetype-C projects in particular) load the built output, not
+        # the source tree, so the build must exist before tests run. This
+        # ordering is unconditional across every archetype: it costs
+        # nothing where tests don't need the build (Vitest reads source
+        # modules directly) and is required where they do.
+        if: hashFiles('package.json') != ''
+        run: npm run build --if-present
+
       - name: Run unit tests (npm)
         # --if-present no-ops when the project has no "test" script, so a
         # static-content or not-yet-tested project does not fail the build
@@ -77,12 +89,6 @@ jobs:
           if ! node -e "process.exit(require('./package.json').scripts && require('./package.json').scripts.test ? 0 : 1)"; then
             echo "::warning::No \"test\" script found in package.json. Unit tests did not run for this project."
           fi
-
-      - name: Build (npm)
-        # --if-present no-ops when the project has no "build" script, for
-        # a small static project that needs no bundler.
-        if: hashFiles('package.json') != ''
-        run: npm run build --if-present
 
       # --- PHP with MariaDB, and WordPress ---
       # Both stacks use the same Composer scripts, defined in each

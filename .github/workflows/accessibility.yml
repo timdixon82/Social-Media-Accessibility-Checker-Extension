@@ -41,6 +41,19 @@
 # project whose bundler writes elsewhere overrides this step locally.
 # If a project's entry point is not index.html, adapt the Pa11y and axe URLs
 # below to match.
+#
+# Archetype-aware skip for browser extensions. A project whose
+# .github/ci-archetype declares browser-extension has no index.html; its
+# user-facing pages (popup/popup.html, app/app.html) depend on
+# chrome.runtime and chrome.storage, which do not exist outside a loaded
+# extension context, so a statically served Pa11y/axe-cli scan cannot
+# render them at all. For that archetype every scan step in this job is
+# skipped (not failed), and a log-only step explains why. The archetype's
+# accessibility gate is instead its Playwright suite (playwright.yml),
+# which runs axe-core against the extension's popup and options pages
+# while the extension is genuinely loaded in a browser; that job must be a
+# required status check in branch protection for any such project. See
+# jacob-ci-archetypes.md section 2c and the accompanying decision record.
 
 name: Accessibility
 on:
@@ -60,7 +73,30 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
+      - name: Check the CI archetype
+        # Reads .github/ci-archetype, trimmed of surrounding whitespace and
+        # newlines, mirroring the equivalent step in ci.yml. A
+        # browser-extension project's user-facing pages depend on
+        # chrome.runtime and chrome.storage, which do not exist outside a
+        # loaded extension, so a statically served Pa11y/axe-cli scan
+        # cannot render them. This archetype's accessibility gate is its
+        # Playwright suite instead (see playwright.yml and the decision
+        # record cross-referenced at the top of this file).
+        id: archetype
+        run: |
+          if [ -f .github/ci-archetype ]; then
+            value=$(tr -d '[:space:]' < .github/ci-archetype)
+          else
+            value=""
+          fi
+          if [ "$value" = "browser-extension" ]; then
+            echo "is_browser_extension=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_browser_extension=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
+        if: steps.archetype.outputs.is_browser_extension != 'true'
         with:
           node-version: lts/*
           cache: npm
@@ -69,14 +105,17 @@ jobs:
       - name: Install accessibility tools
         # Tools are managed in .github/accessibility-tools/package.json so
         # Dependabot can track and propose version bumps automatically.
+        if: steps.archetype.outputs.is_browser_extension != 'true'
         run: npm ci
         working-directory: .github/accessibility-tools
 
       - name: Add accessibility tools to PATH
+        if: steps.archetype.outputs.is_browser_extension != 'true'
         run: echo "$GITHUB_WORKSPACE/.github/accessibility-tools/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Set up Chrome and ChromeDriver
         id: chrome
+        if: steps.archetype.outputs.is_browser_extension != 'true'
         uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd  # v2.1.2
         with:
           install-chromedriver: true
@@ -86,27 +125,29 @@ jobs:
         # the repository root). A build is required before serving because
         # a bundler's index.html loads ES module imports that only resolve
         # once built.
-        if: hashFiles('package.json') != ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('package.json') != ''
         run: npm ci
 
       - name: Build the project (npm)
         # --if-present no-ops when the project has no "build" script.
-        if: hashFiles('package.json') != ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('package.json') != ''
         run: npm run build --if-present
 
       - name: Serve the built site in the background (static-app / browser-extension)
-        if: hashFiles('package.json') != ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('package.json') != ''
         run: python3 -m http.server 8080 --directory dist &
 
       - name: Serve the site in the background (static-content)
-        if: hashFiles('package.json') == ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('package.json') == ''
         run: python3 -m http.server 8080 &
 
       - name: Wait for the server to be ready
+        if: steps.archetype.outputs.is_browser_extension != 'true'
         run: wait-on http://localhost:8080 --timeout 15000
 
       - name: Pa11y at WCAG 2.2 AAA
         # Adapt the URL to match the project's entry point.
+        if: steps.archetype.outputs.is_browser_extension != 'true'
         env:
           PUPPETEER_EXECUTABLE_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: pa11y --standard WCAG2AAA http://localhost:8080/index.html
@@ -120,7 +161,22 @@ jobs:
         # itself exit 1 when any violation is found. Without it axe always exits
         # 0, so this step would report violations in the log but still pass the
         # job — a false-green gate.
+        if: steps.archetype.outputs.is_browser_extension != 'true'
         env:
           CHROMEDRIVER_PATH: ${{ steps.chrome.outputs.chromedriver-path }}
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: axe http://localhost:8080/index.html --tags wcag2a,wcag2aa,wcag2aaa,wcag22aa,wcag22aaa --chrome-options="no-sandbox" --chromedriver-path "$CHROMEDRIVER_PATH" --chrome-path "$CHROME_PATH" --exit
+
+      - name: Note that Playwright carries the accessibility gate for browser-extension
+        if: steps.archetype.outputs.is_browser_extension == 'true'
+        run: |
+          echo "This project's .github/ci-archetype declares browser-extension."
+          echo "A statically served Pa11y/axe-cli scan cannot render pages that"
+          echo "depend on chrome.runtime and chrome.storage, so this job is a"
+          echo "deliberate no-op for this archetype, not a weakened check."
+          echo "WCAG 2.2 AAA coverage is provided instead by this project's"
+          echo "Playwright suite (see playwright.yml), which runs axe-core"
+          echo "against the extension's popup and options pages while the"
+          echo "extension is actually loaded in a browser. The Playwright"
+          echo "tests check must be a required status check in branch"
+          echo "protection for this repository as a result."
