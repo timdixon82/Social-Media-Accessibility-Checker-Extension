@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.2.1](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/compare/v1.2.0...v1.2.1) (2026-07-14)
+
+
+### Bug Fixes
+
+* **a11y:** accessibility sprint — close all ten open findings ([ed0d06b](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/ed0d06ba0fdc3fc0545d11bd5f3fa7e62d428b69))
+* **a11y:** app.js and app.html accessibility sprint fixes (A-1–A-6, AA-2) ([c7e34d3](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/c7e34d3c494a510b6245c21beb5cbf330c4e5824))
+* **a11y:** popup focus ring double-ring and url-display contrast (AAA-3, AAA-1) ([4f038dc](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/4f038dc897918f5520a1b0431781ac744360c043))
+* **a11y:** resolve all ten open baseline accessibility findings ([ed0d06b](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/ed0d06ba0fdc3fc0545d11bd5f3fa7e62d428b69))
+* add dependabot cooldown block to satisfy semgrep dependabot-missing-cooldown rule ([#26](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/issues/26)) ([6139fef](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/6139fef9e8b662a905bb5526bbe56ddcb0ffed3b))
+* bump protobufjs to resolve CVE-2026-48712 ([#27](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/issues/27)) ([6516dd5](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/6516dd58bef9422c675651e59be1b247c95c7327))
+* correct inline contrast-ratio annotations in popup.html ([ac56f68](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/ac56f68aff3b5081e63dccc0c1fcd0eca598009c))
+* correct inline contrast-ratio annotations in popup.html ([ac56f68](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/ac56f68aff3b5081e63dccc0c1fcd0eca598009c))
+* correct inline contrast-ratio annotations in popup.html ([620bbf0](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/620bbf0d6c93d73e0259888ba6963fc8dae43e4b))
+
 ## [1.2.0](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/compare/v1.1.4...v1.2.0) (2026-05-31)
 
 
