@@ -15,13 +15,23 @@
 #
 # ── CHOOSE ONE VARIANT ────────────────────────────────────────────────────────
 #
-# BUNDLED projects: a build step emits an output folder (e.g. dist).
+# BUNDLED projects: a build step emits an output folder (e.g. dist). This is
+# also the correct job for a bundler-free static-app project that still
+# carries a package.json for tooling only, with no "build" script (e.g.
+# Braille Reference, LLBS Braille Name Generator — each documented in an
+# ADR as no-build). The BUNDLED job handles both automatically: "npm run
+# build --if-present" no-ops when there is no build script, and the upload
+# step falls back to uploading the repository root when no dist/ was
+# produced, so no per-project edit is needed either way.
 #   - Keep the BUNDLED JOB section below (the default).
 #   - Delete or comment out the UNBUNDLED JOB section.
 #
 # UNBUNDLED static projects: files served straight from the repo root, no
-# build step (e.g. SWOT Builder). An "Assemble site" step copies runtime
-# files into _site, excluding node_modules / .github / docs / config files.
+# package.json at all (e.g. SWOT Builder). An "Assemble site" step copies
+# only known runtime paths into _site (index.html, styles/, scripts/,
+# data/, assets/) using a fail-safe ALLOW-list, so nothing outside that
+# list — node_modules, .github, docs, .claude, tests, config files —
+# publishes by default.
 #   - Keep the UNBUNDLED JOB section below.
 #   - Delete or comment out the BUNDLED JOB section.
 #
@@ -67,7 +77,63 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
+        # --if-present no-ops when the project has no "build" script (a
+        # bundler-free static-app project with a package.json for tooling
+        # only, e.g. Braille Reference). Without --if-present, npm exits
+        # non-zero with "Missing script: build" and the deploy fails.
+        run: npm run build --if-present
+
+      - name: Assemble the deploy artifact
+        # dist/ is the template default build output folder (change the
+        # test below to match your build output folder if different). If
+        # the build step above no-op'd because there is no build script,
+        # dist/ never gets created — the bundler-free case (e.g. Braille
+        # Reference). Uploading the repository root as-is would publish
+        # every file in the repo, including internal-only material such as
+        # .claude/, CLAUDE.md, README.md, tests/, scripts run for tooling,
+        # and config files.
+        #
+        # This is a fail-safe ALLOW-list, not a deny-list: only paths
+        # matching an explicit --include line below are copied into
+        # _site/. Everything else is excluded by the trailing
+        # --exclude='*'. A file nobody thought to exclude is therefore
+        # NOT published by default — the opposite of a deny-list, where a
+        # forgotten exclude ships an unknown file to a public Pages URL.
+        # The path names match the canonical static front-end project
+        # layout in docs/stacks/static-front-end.md: index.html at the
+        # root, plus the styles/, scripts/, data/, and assets/ folders. A
+        # project that genuinely needs an extra runtime path (for example
+        # fonts/ kept outside assets/) adds one explicit --include line
+        # for it, rather than loosening the list.
+        #
+        # Every include below (other than the '*/' descend-only pattern)
+        # carries a leading '/' to anchor it to the repo root. An rsync
+        # include that contains a '/' but has NO leading '/' is NOT
+        # anchored — it matches at any depth, not just the root. Because
+        # npm ci runs before this step, an unanchored 'scripts/***' also
+        # matches nested paths such as node_modules/ajv/scripts/*, and
+        # unanchored 'data/***' also matches node_modules/css-tree/data/*,
+        # silently publishing node_modules internals to the public site.
+        id: artifact
+        run: |
+          if [ -d dist ]; then
+            echo "path=dist" >> "$GITHUB_OUTPUT"
+          else
+            mkdir _site
+            # The allow-listed paths below (styles/, scripts/, data/,
+            # assets/, index.html) are published to the public site: never
+            # put a secret or other non-public file in any of them.
+            rsync -a --prune-empty-dirs --safe-links \
+                     --include='/index.html' \
+                     --include='/styles/***' \
+                     --include='/scripts/***' \
+                     --include='/data/***' \
+                     --include='/assets/***' \
+                     --include='*/' \
+                     --exclude='*' \
+                     ./ _site/
+            echo "path=_site" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Configure Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d  # v6.0.0
@@ -75,7 +141,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
         with:
-          path: dist   # change to your build output folder if different
+          path: ${{ steps.artifact.outputs.path }}
 
   deploy:
     needs: build
@@ -101,19 +167,34 @@ jobs:
   #       uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
   #
   #     - name: Assemble site
+  #       # Fail-safe ALLOW-list: only paths matching an explicit --include
+  #       # line are copied into _site/; everything else is excluded by the
+  #       # trailing --exclude='*'. A forgotten file is NOT published by
+  #       # default. Path names match the canonical static front-end layout
+  #       # in docs/stacks/static-front-end.md. Add one explicit --include
+  #       # line for any extra runtime path your project genuinely needs.
+  #       #
+  #       # Every include below (other than the '*/' descend-only pattern)
+  #       # carries a leading '/' to anchor it to the repo root. An rsync
+  #       # include that contains a '/' but has NO leading '/' is NOT
+  #       # anchored — it matches at any depth, not just the root, so an
+  #       # unanchored 'scripts/***' or 'data/***' also matches nested
+  #       # node_modules paths (e.g. node_modules/ajv/scripts/*), silently
+  #       # publishing node_modules internals to the public site.
   #       run: |
   #         mkdir _site
-  #         rsync -av \
-  #           --exclude='_site' \
-  #           --exclude='node_modules' \
-  #           --exclude='.github' \
-  #           --exclude='docs' \
-  #           --exclude='package.json' \
-  #           --exclude='package-lock.json' \
-  #           --exclude='.eslintrc.js' \
-  #           --exclude='.stylelintrc.json' \
-  #           . _site/
-  #         # Adjust the exclude list to match files your project must not serve.
+  #         # The allow-listed paths below (styles/, scripts/, data/,
+  #         # assets/, index.html) are published to the public site: never
+  #         # put a secret or other non-public file in any of them.
+  #         rsync -a --prune-empty-dirs --safe-links \
+  #                  --include='/index.html' \
+  #                  --include='/styles/***' \
+  #                  --include='/scripts/***' \
+  #                  --include='/data/***' \
+  #                  --include='/assets/***' \
+  #                  --include='*/' \
+  #                  --exclude='*' \
+  #                  ./ _site/
   #
   #     - name: Configure Pages
   #       uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d  # v6.0.0

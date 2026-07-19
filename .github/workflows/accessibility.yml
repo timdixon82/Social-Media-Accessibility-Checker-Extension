@@ -28,13 +28,27 @@
 # Pa11y and axe-core run against the served HTML; full rendered-interface
 # testing is Carol's responsibility in her manual test pass.
 #
+# axe-core render settle delay. The axe-core CLI step below passes
+# --load-delay 1000, so axe waits one second after page load before
+# auditing. Without it, axe's default 0ms delay races render on
+# CDN-loaded/React/Babel apps and webfont swap, producing non-deterministic
+# color-contrast-enhanced false failures on elements that genuinely meet
+# 7:1. --load-delay is confirmed to exist on the pinned @axe-core/cli
+# version via `axe --help`; it only adds a settle wait and does not change
+# which rules run or weaken --exit.
+#
 # Serving is archetype-aware, gated on manifest presence (mirrors the
 # hashFiles('package.json') pattern in ci.yml and security.yml; hashFiles is
 # step-level only, not valid at job level):
 #   - package.json present (static-app, browser-extension): the project is
-#     installed and built (npm ci, then npm run build --if-present) and the
-#     dist/ build output is served, since a bundler's index.html loads bare
-#     ES module imports that only resolve after a build.
+#     installed and built (npm ci, then npm run build --if-present).
+#     If the build produced a dist/ directory (hashFiles('dist/**') != ''),
+#     that build output is served, since a bundler's index.html loads bare
+#     ES module imports that only resolve after a build. If no dist/ was
+#     produced — a bundler-free project with a package.json for tooling
+#     only, but no "build" script, e.g. Braille Reference — npm run build
+#     --if-present no-ops and there is no dist/ to serve, so the repository
+#     root is served instead, same as a static-content project.
 #   - package.json absent (static-content): the repository root is served
 #     unchanged, as before.
 # dist/ is the template default build output directory (Vite's default). A
@@ -133,12 +147,12 @@ jobs:
         if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('package.json') != ''
         run: npm run build --if-present
 
-      - name: Serve the built site in the background (static-app / browser-extension)
-        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('package.json') != ''
+      - name: Serve the built site in the background (static-app / browser-extension, build present)
+        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('package.json') != '' && hashFiles('dist/**') != ''
         run: python3 -m http.server 8080 --directory dist &
 
-      - name: Serve the site in the background (static-content)
-        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('package.json') == ''
+      - name: Serve the repository root in the background (static-content, or a bundler-free package.json project with no dist/ output)
+        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('dist/**') == ''
         run: python3 -m http.server 8080 &
 
       - name: Wait for the server to be ready
@@ -161,11 +175,19 @@ jobs:
         # itself exit 1 when any violation is found. Without it axe always exits
         # 0, so this step would report violations in the log but still pass the
         # job — a false-green gate.
+        # --load-delay 1000 (pinned @axe-core/cli 4.11.3, confirmed via `axe
+        # --help`) waits one second after page load before auditing. The
+        # default is 0ms, which races render on CDN-loaded/React/Babel apps
+        # and webfont swap, and was observed to produce non-deterministic
+        # color-contrast-enhanced false failures on elements that actually
+        # meet 7:1 (identical-commit rerun on SWOT Builder went from 9
+        # violations to 0). --load-delay is a settle delay only; it does not
+        # change which rules run or weaken --exit.
         if: steps.archetype.outputs.is_browser_extension != 'true'
         env:
           CHROMEDRIVER_PATH: ${{ steps.chrome.outputs.chromedriver-path }}
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
-        run: axe http://localhost:8080/index.html --tags wcag2a,wcag2aa,wcag2aaa,wcag22aa,wcag22aaa --chrome-options="no-sandbox" --chromedriver-path "$CHROMEDRIVER_PATH" --chrome-path "$CHROME_PATH" --exit
+        run: axe http://localhost:8080/index.html --tags wcag2a,wcag2aa,wcag2aaa,wcag22aa,wcag22aaa --chrome-options="no-sandbox" --chromedriver-path "$CHROMEDRIVER_PATH" --chrome-path "$CHROME_PATH" --load-delay 1000 --exit
 
       - name: Note that Playwright carries the accessibility gate for browser-extension
         if: steps.archetype.outputs.is_browser_extension == 'true'

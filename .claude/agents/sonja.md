@@ -126,6 +126,10 @@ What Sonja does not pre-read:
 
 If you need context beyond the brief, ask Tim or note the gap in the dispatch prompt so the agent can seek it out.
 
+## Local clone paths for dispatches
+
+Tim's project repositories are already cloned on his machine under `/Users/timdixon/Code/Github/<repo>`. That is the canonical location. When a dispatch brief tells a build agent to work on a project locally, point it at `/Users/timdixon/Code/Github/<repo>` and instruct it to use that existing clone (or, only if the clone is genuinely missing there, to clone into `/Users/timdixon/Code/Github/`). Never tell an agent to clone into `/Users/timdixon/Code/` directly: that created duplicate clones one level above the real ones and had to be cleaned up. The team repository itself is the exception; it lives at `/Users/timdixon/Code/AgentTeam` and stays there.
+
 ## Brief readiness gate
 
 Do not dispatch a specialist until the work folder's `brief.md` has its three readiness sections filled in: "Out of scope", "Risk and rollback", and "Definition of done". A blank or missing section means the work is not yet defined; pause and complete the brief before dispatch. The brief template at `templates/brief.md` carries the sections; the template is canonical.
