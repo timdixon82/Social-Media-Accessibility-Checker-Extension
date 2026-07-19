@@ -14,6 +14,15 @@
 # available for a private repository. This workflow covers JavaScript for
 # a public static project. For a private PHP or WordPress project, remove
 # this workflow and rely on the Semgrep job in security.yml instead.
+#
+# Language selection is archetype-aware: a project whose .github/ci-archetype
+# declares python-tool has no JavaScript at all, so CodeQL's "Initialise"
+# step analyses Python instead. Every other archetype keeps the existing
+# JavaScript default. A hardcoded "languages: javascript" would silently
+# analyse nothing in a Python-only repository — a false-green signal, not
+# real coverage, which is the defect this gate closes. See
+# jacob-ci-archetypes.md and docs/decisions/001-python-tool-ci-archetype.md
+# in Lire RSS Hermes.
 
 name: CodeQL
 on:
@@ -36,9 +45,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - name: Check the CI archetype
+        id: archetype
+        run: |
+          if [ -f .github/ci-archetype ]; then
+            value=$(tr -d '[:space:]' < .github/ci-archetype)
+          else
+            value=""
+          fi
+          if [ "$value" = "python-tool" ]; then
+            echo "codeql_language=python" >> "$GITHUB_OUTPUT"
+          else
+            echo "codeql_language=javascript" >> "$GITHUB_OUTPUT"
+          fi
       - name: Initialise CodeQL
         uses: github/codeql-action/init@7211b7c8077ea37d8641b6271f6a365a22a5fbfa  # v4.36.0
         with:
-          languages: javascript
+          languages: ${{ steps.archetype.outputs.codeql_language }}
       - name: Analyse
         uses: github/codeql-action/analyze@7211b7c8077ea37d8641b6271f6a365a22a5fbfa  # v4.36.0

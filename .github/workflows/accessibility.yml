@@ -68,6 +68,17 @@
 # while the extension is genuinely loaded in a browser; that job must be a
 # required status check in branch protection for any such project. See
 # jacob-ci-archetypes.md section 2c and the accompanying decision record.
+#
+# Archetype-aware skip for python-tool. A project whose .github/ci-archetype
+# declares python-tool has no HTML pages at all — it operates entirely
+# through a Python command-line script, with no web-facing surface to serve
+# or scan. Every scan step in this job is skipped for it too, with its own
+# log-only explanation distinct from browser-extension's: unlike
+# browser-extension, there is no alternate accessibility gate (no
+# Playwright suite) to point to, because there is nothing rendered to
+# check. This is a genuine "not applicable," not a deferred check. First
+# introduced as a project-local fix in Lire RSS Hermes
+# (docs/decisions/001-python-tool-ci-archetype.md in that project).
 
 name: Accessibility
 on:
@@ -108,9 +119,14 @@ jobs:
           else
             echo "is_browser_extension=false" >> "$GITHUB_OUTPUT"
           fi
+          if [ "$value" = "python-tool" ]; then
+            echo "is_python_tool=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_python_tool=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
-        if: steps.archetype.outputs.is_browser_extension != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
         with:
           node-version: lts/*
           cache: npm
@@ -119,17 +135,17 @@ jobs:
       - name: Install accessibility tools
         # Tools are managed in .github/accessibility-tools/package.json so
         # Dependabot can track and propose version bumps automatically.
-        if: steps.archetype.outputs.is_browser_extension != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
         run: npm ci
         working-directory: .github/accessibility-tools
 
       - name: Add accessibility tools to PATH
-        if: steps.archetype.outputs.is_browser_extension != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
         run: echo "$GITHUB_WORKSPACE/.github/accessibility-tools/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Set up Chrome and ChromeDriver
         id: chrome
-        if: steps.archetype.outputs.is_browser_extension != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
         uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd  # v2.1.2
         with:
           install-chromedriver: true
@@ -139,29 +155,29 @@ jobs:
         # the repository root). A build is required before serving because
         # a bundler's index.html loads ES module imports that only resolve
         # once built.
-        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('package.json') != ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && hashFiles('package.json') != ''
         run: npm ci
 
       - name: Build the project (npm)
         # --if-present no-ops when the project has no "build" script.
-        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('package.json') != ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && hashFiles('package.json') != ''
         run: npm run build --if-present
 
       - name: Serve the built site in the background (static-app / browser-extension, build present)
-        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('package.json') != '' && hashFiles('dist/**') != ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && hashFiles('package.json') != '' && hashFiles('dist/**') != ''
         run: python3 -m http.server 8080 --directory dist &
 
       - name: Serve the repository root in the background (static-content, or a bundler-free package.json project with no dist/ output)
-        if: steps.archetype.outputs.is_browser_extension != 'true' && hashFiles('dist/**') == ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && hashFiles('dist/**') == ''
         run: python3 -m http.server 8080 &
 
       - name: Wait for the server to be ready
-        if: steps.archetype.outputs.is_browser_extension != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
         run: wait-on http://localhost:8080 --timeout 15000
 
       - name: Pa11y at WCAG 2.2 AAA
         # Adapt the URL to match the project's entry point.
-        if: steps.archetype.outputs.is_browser_extension != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
         env:
           PUPPETEER_EXECUTABLE_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: pa11y --standard WCAG2AAA http://localhost:8080/index.html
@@ -183,7 +199,7 @@ jobs:
         # meet 7:1 (identical-commit rerun on SWOT Builder went from 9
         # violations to 0). --load-delay is a settle delay only; it does not
         # change which rules run or weaken --exit.
-        if: steps.archetype.outputs.is_browser_extension != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
         env:
           CHROMEDRIVER_PATH: ${{ steps.chrome.outputs.chromedriver-path }}
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
@@ -202,3 +218,14 @@ jobs:
           echo "extension is actually loaded in a browser. The Playwright"
           echo "tests check must be a required status check in branch"
           echo "protection for this repository as a result."
+
+      - name: Note that this project has no rendered surface to scan (python-tool)
+        if: steps.archetype.outputs.is_python_tool == 'true'
+        run: |
+          echo "This project's .github/ci-archetype declares python-tool."
+          echo "It has no HTML pages at all: it operates entirely through a"
+          echo "Python command-line script, so this job is a deliberate"
+          echo "no-op for this archetype, not a weakened check. Unlike"
+          echo "browser-extension, there is no alternate accessibility gate"
+          echo "to point to here; this is a genuine \"not applicable\", not"
+          echo "a deferred check."
