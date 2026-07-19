@@ -1,40 +1,27 @@
-# Playwright end-to-end suite for the Social Media Accessibility Checker
-# Extension.
+# Playwright functional and visual regression tests.
 #
-# This workflow is the archetype-C (browser-extension) dedicated Playwright
-# job called for in jacob-ci-archetypes.md sections 2c and 3 (item 12). It
-# builds the extension, loads it into Chromium via launchPersistentContext
-# --load-extension (as tests/accessibility/popup.spec.js already does), and
-# runs the project's Playwright suite.
+# This is an opt-in scaffold. The steps below are commented out because a
+# freshly scaffolded project has no Playwright tests yet. Enabling this
+# workflow before tests exist would produce a red or empty CI job on every
+# pull request, which is the opposite of the quality goal.
 #
-# Relationship to ci.yml: ci.yml's own npm-test step already runs
-# `npm test` (playwright test), and its Playwright browser-install step
-# (section 2c) is a safety net so that step never silently fails there for
-# lack of a browser. This workflow is the primary, fuller-featured home for
-# the same suite: it adds a build step (the extension must be built before
-# tests load ../../dist), a dedicated browser-install step, and the
-# report-upload-on-failure step below, so a failing run leaves an inspectable
-# HTML report as an artifact without needing to re-run.
+# To enable this workflow for a project:
+#   1. Write at least one Playwright test in your project (e.g. tests/e2e/).
+#   2. Uncomment the steps below.
+#   3. Replace the placeholder test command with your project's actual command.
+#   4. Commit the updated workflow.
 #
-# xvfb-run: the extension tests use launchPersistentContext with
-# headless: false plus Chrome's own --headless=new flag (documented in
-# tests/accessibility/popup.spec.js), because Playwright's legacy headless
-# mode suppresses extension service workers. That combination needs a
-# display. xvfb-run supplies a virtual one on the GitHub-hosted runner,
-# matching the test file's own documented assumption; a real display is
-# used locally.
+# This workflow is gated to code-type projects. Documentation-type projects
+# do not receive this file during sync.
 #
 # Action versions were verified against GitHub and pinned to commit SHAs
 # on 2026-06-02. The version tag is shown in the trailing comment. To
 # update an action, change the SHA and the comment together.
 #
-# Relationship to accessibility.yml: accessibility.yml covers WCAG
-# conformance via Pa11y and axe-core against a served page. This workflow
-# covers the extension's own Playwright suite, which today is
-# tests/accessibility/popup.spec.js — axe-core run inside the actual loaded
-# extension (popup and report pages), not a statically served copy. See the
-# pull request description for the open question on how the two relate for
-# this project.
+# Relationship to accessibility.yml: this workflow covers functional flows
+# and visual regression. accessibility.yml covers WCAG conformance via
+# Pa11y and axe-core. Both serve different layers and must both be green
+# before a PR merges.
 
 name: Playwright
 on:
@@ -43,54 +30,47 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   playwright:
     name: Playwright tests
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
-        with:
-          node-version: lts/*
-          cache: npm
+      # --- Uncomment and adapt when the project has Playwright tests ---
 
-      - name: Install dependencies
-        run: npm ci
+      # - name: Set up Node.js
+      #   uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
+      #   with:
+      #     node-version: lts/*
+      #     cache: npm
 
-      - name: Build the extension
-        # The Playwright tests load the built extension from dist/ via
-        # --load-extension, so it must be built before the suite runs.
-        run: npm run build
+      # - name: Install dependencies
+      #   run: npm ci
 
-      - name: Install Playwright browsers
-        # --with-deps installs system dependencies (libnss3, etc.) on the runner.
-        run: npx playwright install --with-deps
+      # - name: Install Playwright browsers
+      #   # --with-deps installs system dependencies (libnss3, etc.) on the runner.
+      #   run: npx playwright install --with-deps
 
-      - name: Install Xvfb
-        # Installed explicitly rather than assumed present on the runner
-        # image, since headless: false plus --headless=new (see the comment
-        # block at the top of this file) needs a display to launch against.
-        run: sudo apt-get update && sudo apt-get install -y xvfb
+      # - name: Run Playwright tests
+      #   # Replace this command with the project's actual test command.
+      #   # Examples:
+      #   #   npx playwright test
+      #   #   npm run test:e2e
+      #   #   npx playwright test --reporter=html
+      #   run: npx playwright test
 
-      - name: Run Playwright tests
-        # xvfb-run provides the virtual display headless: false plus
-        # --headless=new needs on a GitHub-hosted runner; see the comment
-        # block at the top of this file.
-        run: xvfb-run --auto-servernum -- npx playwright test
+      # - name: Upload Playwright report
+      #   # Upload the HTML report as an artifact on failure so it can be
+      #   # inspected without re-running the tests.
+      #   if: failure()
+      #   uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+      #   with:
+      #     name: playwright-report
+      #     path: playwright-report/
+      #     retention-days: 7
 
-      - name: Upload Playwright report
-        # Upload the HTML report as an artifact on failure so it can be
-        # inspected without re-running the tests.
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
+      - name: Placeholder
+        # Remove this step once the steps above are uncommented.
+        run: echo "Playwright tests are not yet configured for this project. See the comments in this file for setup instructions."
