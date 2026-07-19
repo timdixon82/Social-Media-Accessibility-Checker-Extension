@@ -17,12 +17,21 @@
 # code-type project that has neither manifest — a hand-written static site
 # with no package.json and no build step. Its contents (trimmed of
 # whitespace) must be one of: static-content, static-app, browser-extension,
-# php. Only the value "static-content" excuses a project from the
-# no-manifest failure below; the other three values exist so the file is a
-# complete, self-documenting record of the project's archetype even where a
-# manifest already tells CI what to do. See jacob-ci-archetypes.md section 2b.
-# A project with neither a manifest nor a static-content declaration fails
-# the job, because a code-type project is expected to have one or the other.
+# php, python-tool. Only "static-content" and "python-tool" excuse a project
+# from the no-manifest failure below; the other three values exist so the
+# file is a complete, self-documenting record of the project's archetype
+# even where a manifest already tells CI what to do. See
+# jacob-ci-archetypes.md section 2b.
+# A project with neither a manifest nor an excusing declaration fails the
+# job, because a code-type project is expected to have one or the other.
+#
+# python-tool: a Python command-line tool or automation script with no
+# web-facing surface at all (no package.json, no composer.json, no HTML, no
+# CSS). Instead of the npm/Composer blocks above, this archetype gets a
+# genuine Python compile check (see below). First introduced as a
+# project-local fix in Lire RSS Hermes
+# (docs/decisions/001-python-tool-ci-archetype.md in that project) and
+# upstreamed here.
 
 name: CI
 on:
@@ -117,11 +126,12 @@ jobs:
       # instance via wp-env and belong in a dedicated job once a WordPress
       # project reaches that point. See docs/stacks/wordpress.md.
 
-      - name: Check for a static-content archetype declaration
+      - name: Check for a static-content or python-tool archetype declaration
         # Reads .github/ci-archetype, trimmed of surrounding whitespace and
-        # newlines, and records whether it declares "static-content". Runs
-        # unconditionally (cheap) so the fail-check below can read the
-        # result regardless of which manifests are present.
+        # newlines, and records whether it declares "static-content" or
+        # "python-tool". Runs unconditionally (cheap) so the fail-check
+        # below can read the result regardless of which manifests are
+        # present.
         id: archetype
         run: |
           if [ -f .github/ci-archetype ]; then
@@ -134,16 +144,41 @@ jobs:
           else
             echo "is_static_content=false" >> "$GITHUB_OUTPUT"
           fi
+          if [ "$value" = "python-tool" ]; then
+            echo "is_python_tool=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_python_tool=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Fail if no manifest or static-content declaration was found
+      - name: Fail if no manifest or excusing declaration was found
         if: |
           hashFiles('package.json') == '' &&
           hashFiles('composer.json') == '' &&
-          steps.archetype.outputs.is_static_content != 'true'
+          steps.archetype.outputs.is_static_content != 'true' &&
+          steps.archetype.outputs.is_python_tool != 'true'
         run: |
           echo "No package.json or composer.json found at the repository root,"
-          echo "and .github/ci-archetype does not declare \"static-content\"."
-          echo "This is a code-type project, so one of the two is expected."
-          echo "See the comments at the top of this workflow for what each"
-          echo "manifest or declaration means."
+          echo "and .github/ci-archetype does not declare \"static-content\""
+          echo "or \"python-tool\". This is a code-type project, so one of"
+          echo "these is expected. See the comments at the top of this"
+          echo "workflow for what each manifest or declaration means."
           exit 1
+
+      # --- Python command-line tool or automation script ---
+      - name: Set up Python
+        if: steps.archetype.outputs.is_python_tool == 'true'
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c  # v6.0.0
+        with:
+          python-version: '3.x'
+
+      - name: Compile check (python-tool)
+        # python3 -m compileall is the substantive build-equivalent gate for
+        # this archetype: there is no bundler or test runner to invoke, but
+        # a script that fails to compile is a real defect this check
+        # catches. Runs against the whole repository tree, excluding common
+        # non-source directories.
+        if: steps.archetype.outputs.is_python_tool == 'true'
+        run: |
+          python3 -m compileall -q \
+            --exclude '(^\./\.git/|^\./node_modules/|^\./\.claude/)' \
+            .
