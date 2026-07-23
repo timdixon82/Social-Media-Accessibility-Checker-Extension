@@ -17,11 +17,11 @@
 # code-type project that has neither manifest — a hand-written static site
 # with no package.json and no build step. Its contents (trimmed of
 # whitespace) must be one of: static-content, static-app, browser-extension,
-# php, python-tool. Only "static-content" and "python-tool" excuse a project
-# from the no-manifest failure below; the other three values exist so the
-# file is a complete, self-documenting record of the project's archetype
-# even where a manifest already tells CI what to do. See
-# jacob-ci-archetypes.md section 2b.
+# php, python-tool, wordpress-theme. Only "static-content", "python-tool",
+# and "wordpress-theme" excuse a project from the no-manifest failure below;
+# the other values exist so the file is a complete, self-documenting record
+# of the project's archetype even where a manifest already tells CI what to
+# do. See jacob-ci-archetypes.md section 2b.
 # A project with neither a manifest nor an excusing declaration fails the
 # job, because a code-type project is expected to have one or the other.
 #
@@ -32,6 +32,15 @@
 # project-local fix in Lire RSS Hermes
 # (docs/decisions/001-python-tool-ci-archetype.md in that project) and
 # upstreamed here.
+#
+# wordpress-theme: a classic WordPress theme with PHP templates, no
+# composer.json (no Composer dependencies), and often no package.json
+# either (or one used purely for lint tooling, with no build or test
+# script). There is no lightweight way to run a real WordPress instance in
+# this job, so this archetype has no build-equivalent check here beyond the
+# manifest excuse; accessibility.yml separately gives it an honest no-op
+# for the same reason (no live render available in CI). First introduced as
+# a project-local fix in Tim Dixon WordPress Theme and LLBS-Website.
 
 name: CI
 on:
@@ -126,12 +135,12 @@ jobs:
       # instance via wp-env and belong in a dedicated job once a WordPress
       # project reaches that point. See docs/stacks/wordpress.md.
 
-      - name: Check for a static-content or python-tool archetype declaration
+      - name: Check for a static-content, python-tool, or wordpress-theme archetype declaration
         # Reads .github/ci-archetype, trimmed of surrounding whitespace and
-        # newlines, and records whether it declares "static-content" or
-        # "python-tool". Runs unconditionally (cheap) so the fail-check
-        # below can read the result regardless of which manifests are
-        # present.
+        # newlines, and records whether it declares "static-content",
+        # "python-tool", or "wordpress-theme". Runs unconditionally (cheap)
+        # so the fail-check below can read the result regardless of which
+        # manifests are present.
         id: archetype
         run: |
           if [ -f .github/ci-archetype ]; then
@@ -149,19 +158,25 @@ jobs:
           else
             echo "is_python_tool=false" >> "$GITHUB_OUTPUT"
           fi
+          if [ "$value" = "wordpress-theme" ]; then
+            echo "is_wordpress_theme=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_wordpress_theme=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Fail if no manifest or excusing declaration was found
         if: |
           hashFiles('package.json') == '' &&
           hashFiles('composer.json') == '' &&
           steps.archetype.outputs.is_static_content != 'true' &&
-          steps.archetype.outputs.is_python_tool != 'true'
+          steps.archetype.outputs.is_python_tool != 'true' &&
+          steps.archetype.outputs.is_wordpress_theme != 'true'
         run: |
           echo "No package.json or composer.json found at the repository root,"
-          echo "and .github/ci-archetype does not declare \"static-content\""
-          echo "or \"python-tool\". This is a code-type project, so one of"
-          echo "these is expected. See the comments at the top of this"
-          echo "workflow for what each manifest or declaration means."
+          echo "and .github/ci-archetype does not declare \"static-content\","
+          echo "\"python-tool\", or \"wordpress-theme\". This is a code-type"
+          echo "project, so one of these is expected. See the comments at the"
+          echo "top of this workflow for what each manifest or declaration means."
           exit 1
 
       # --- Python command-line tool or automation script ---
@@ -180,5 +195,5 @@ jobs:
         if: steps.archetype.outputs.is_python_tool == 'true'
         run: |
           python3 -m compileall -q \
-            --exclude '(^\./\.git/|^\./node_modules/|^\./\.claude/)' \
+            -x '(^\./\.git/|^\./node_modules/|^\./\.claude/)' \
             .
