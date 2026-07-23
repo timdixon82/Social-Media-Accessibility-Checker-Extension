@@ -79,6 +79,17 @@
 # check. This is a genuine "not applicable," not a deferred check. First
 # introduced as a project-local fix in Lire RSS Hermes
 # (docs/decisions/001-python-tool-ci-archetype.md in that project).
+#
+# Archetype-aware skip for wordpress-theme. A project whose
+# .github/ci-archetype declares wordpress-theme is a classic WordPress
+# theme: its pages are PHP templates rendered by a live WordPress
+# instance, not static HTML this job can serve directly. There is no
+# lightweight way to stand up a full WordPress + database install in
+# this job, so every scan step is skipped, with its own log-only
+# explanation. Like python-tool, this is a genuine "not applicable" for
+# now, not a deferred check; a future wp-env-based job would be the
+# real fix. First introduced as a project-local fix in Tim Dixon
+# WordPress Theme and LLBS-Website.
 
 name: Accessibility
 on:
@@ -124,9 +135,14 @@ jobs:
           else
             echo "is_python_tool=false" >> "$GITHUB_OUTPUT"
           fi
+          if [ "$value" = "wordpress-theme" ]; then
+            echo "is_wordpress_theme=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_wordpress_theme=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
-        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true'
         with:
           node-version: lts/*
           cache: npm
@@ -135,17 +151,17 @@ jobs:
       - name: Install accessibility tools
         # Tools are managed in .github/accessibility-tools/package.json so
         # Dependabot can track and propose version bumps automatically.
-        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true'
         run: npm ci
         working-directory: .github/accessibility-tools
 
       - name: Add accessibility tools to PATH
-        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true'
         run: echo "$GITHUB_WORKSPACE/.github/accessibility-tools/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Set up Chrome and ChromeDriver
         id: chrome
-        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true'
         uses: browser-actions/setup-chrome@2e1d749697dd1612b833dba4a722266286fbefcd  # v2.1.2
         with:
           install-chromedriver: true
@@ -155,29 +171,29 @@ jobs:
         # the repository root). A build is required before serving because
         # a bundler's index.html loads ES module imports that only resolve
         # once built.
-        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && hashFiles('package.json') != ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true' && hashFiles('package.json') != ''
         run: npm ci
 
       - name: Build the project (npm)
         # --if-present no-ops when the project has no "build" script.
-        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && hashFiles('package.json') != ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true' && hashFiles('package.json') != ''
         run: npm run build --if-present
 
       - name: Serve the built site in the background (static-app / browser-extension, build present)
-        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && hashFiles('package.json') != '' && hashFiles('dist/**') != ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true' && hashFiles('package.json') != '' && hashFiles('dist/**') != ''
         run: python3 -m http.server 8080 --directory dist &
 
       - name: Serve the repository root in the background (static-content, or a bundler-free package.json project with no dist/ output)
-        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && hashFiles('dist/**') == ''
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true' && hashFiles('dist/**') == ''
         run: python3 -m http.server 8080 &
 
       - name: Wait for the server to be ready
-        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true'
         run: wait-on http://localhost:8080 --timeout 15000
 
       - name: Pa11y at WCAG 2.2 AAA
         # Adapt the URL to match the project's entry point.
-        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true'
         env:
           PUPPETEER_EXECUTABLE_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: pa11y --standard WCAG2AAA http://localhost:8080/index.html
@@ -199,7 +215,7 @@ jobs:
         # meet 7:1 (identical-commit rerun on SWOT Builder went from 9
         # violations to 0). --load-delay is a settle delay only; it does not
         # change which rules run or weaken --exit.
-        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true'
+        if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true'
         env:
           CHROMEDRIVER_PATH: ${{ steps.chrome.outputs.chromedriver-path }}
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
@@ -229,3 +245,16 @@ jobs:
           echo "browser-extension, there is no alternate accessibility gate"
           echo "to point to here; this is a genuine \"not applicable\", not"
           echo "a deferred check."
+
+      - name: Note that this project has no lightweight rendered surface to scan (wordpress-theme)
+        if: steps.archetype.outputs.is_wordpress_theme == 'true'
+        run: |
+          echo "This project's .github/ci-archetype declares wordpress-theme."
+          echo "Its pages are PHP templates rendered by a live WordPress"
+          echo "instance, not static HTML this job can serve directly, so"
+          echo "this job is a deliberate no-op for this archetype, not a"
+          echo "weakened check. There is no alternate automated accessibility"
+          echo "gate here yet; this is a genuine \"not applicable\" for now,"
+          echo "not a deferred check. AAA conformance for this project is"
+          echo "verified by Carol's manual test pass against the live or"
+          echo "staged site."
