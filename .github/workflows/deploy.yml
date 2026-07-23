@@ -67,7 +67,34 @@ jobs:
       is_browser_extension: ${{ steps.archetype.outputs.is_browser_extension }}
     steps:
       - name: Check out the code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Check the CI archetype
+        # Reads .github/ci-archetype, trimmed of surrounding whitespace and
+        # newlines, mirroring the equivalent step in ci.yml and
+        # accessibility.yml. A browser-extension project has no public
+        # website at all — nothing for GitHub Pages to serve — so this
+        # entire workflow is a deliberate no-op for that archetype, not a
+        # weakened deploy. See jacob-ci-archetypes.md section 2c.
+        id: archetype
+        run: |
+          if [ -f .github/ci-archetype ]; then
+            value=$(tr -d '[:space:]' < .github/ci-archetype)
+          else
+            value=""
+          fi
+          if [ "$value" = "browser-extension" ]; then
+            echo "is_browser_extension=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_browser_extension=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Note that browser-extension projects have nothing to deploy
+        if: steps.archetype.outputs.is_browser_extension == 'true'
+        run: |
+          echo "This project's .github/ci-archetype declares browser-extension."
+          echo "A browser extension has no public website for GitHub Pages to"
+          echo "serve, so this workflow is a deliberate no-op for this archetype."
 
       - name: Check the CI archetype
         # Reads .github/ci-archetype, trimmed of surrounding whitespace and
@@ -200,7 +227,7 @@ jobs:
   #   runs-on: ubuntu-latest
   #   steps:
   #     - name: Check out the code
-  #       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+  #       uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
   #
   #     - name: Assemble site
   #       # Fail-safe ALLOW-list: only paths matching an explicit --include
