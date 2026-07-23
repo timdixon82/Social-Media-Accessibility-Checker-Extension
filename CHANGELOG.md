@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.2](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/compare/v1.2.1...v1.2.2) (2026-07-23)
+
+
+### Bug Fixes
+
+* correct contrast ratio comment for #version colour ([48c6f21](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/48c6f21547848735da2eb921814f51d81a134625))
+* make deploy.yml archetype-aware, stop failing on every push to main ([#36](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/issues/36)) ([77453d7](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/77453d793530531939f5d6349864cc596a50e1a6))
+
 ## [1.2.1](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/compare/v1.2.0...v1.2.1) (2026-07-14)
 
 
