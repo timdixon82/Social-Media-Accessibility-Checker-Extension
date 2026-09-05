@@ -20,21 +20,21 @@
   "dependencies": {
     "@gutenye/ocr-browser": "1.4.8",
     "jszip": "3.10.1",
-    "onnxruntime-web": "1.27.0",
+    "onnxruntime-web": "1.29.0",
     "pdfmake": "0.3.11"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.12.1",
+    "@axe-core/playwright": "4.13.0",
     "@eslint/js": "10.0.1",
-    "@playwright/test": "1.61.1",
+    "@playwright/test": "1.62.1",
     "copy-webpack-plugin": "14.0.0",
-    "eslint": "10.7.0",
-    "globals": "17.7.0",
+    "eslint": "10.9.1",
+    "globals": "17.11.0",
     "htmlhint": "1.9.2",
-    "stylelint": "17.14.0",
+    "stylelint": "17.14.1",
     "stylelint-config-standard": "40.0.0",
-    "webpack": "5.108.4",
-    "webpack-cli": "7.2.1"
+    "webpack": "5.110.1",
+    "webpack-cli": "7.2.3"
   },
   "overrides": {
     "protobufjs": "^7.6.1"
