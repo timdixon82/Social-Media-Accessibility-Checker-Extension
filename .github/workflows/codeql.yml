@@ -1,3 +1,7 @@
+# Runner pin: jobs use ubuntu-24.04, not ubuntu-latest. ubuntu-latest now
+# resolves to Ubuntu 26.04, where the Playwright chromium install and the
+# Pa11y browser launch fail. Revisit once Playwright supports 26.04.
+
 # ── PRIVATE REPOS: THIS WORKFLOW SKIPS ITSELF ──────────────────────────────────
 # CodeQL requires GitHub Advanced Security. On a private repository without
 # Advanced Security enabled, code scanning is not available and the analysis
@@ -45,9 +49,9 @@ concurrency:
 jobs:
   analyze:
     if: ${{ github.event.repository.private == false }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Check the CI archetype
         id: archetype
         run: |
@@ -62,8 +66,8 @@ jobs:
             echo "codeql_language=javascript" >> "$GITHUB_OUTPUT"
           fi
       - name: Initialise CodeQL
-        uses: github/codeql-action/init@7211b7c8077ea37d8641b6271f6a365a22a5fbfa  # v4.36.0
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370  # v4.39.1
         with:
           languages: ${{ steps.archetype.outputs.codeql_language }}
       - name: Analyse
-        uses: github/codeql-action/analyze@7211b7c8077ea37d8641b6271f6a365a22a5fbfa  # v4.36.0
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370  # v4.39.1

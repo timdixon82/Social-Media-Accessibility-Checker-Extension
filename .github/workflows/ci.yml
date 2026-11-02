@@ -1,3 +1,7 @@
+# Runner pin: jobs use ubuntu-24.04, not ubuntu-latest. ubuntu-latest now
+# resolves to Ubuntu 26.04, where the Playwright chromium install and the
+# Pa11y browser launch fail. Revisit once Playwright supports 26.04.
+
 # Continuous integration.
 #
 # Action versions were verified against GitHub and pinned to commit SHAs
@@ -55,15 +59,15 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out the code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
       # --- Static front-end: HTML, CSS, JavaScript ---
       - name: Set up Node.js
         if: hashFiles('package.json') != ''
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e  # v6.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: lts/*
           cache: npm
@@ -114,7 +118,7 @@ jobs:
       # docs/stacks/wordpress.md.
       - name: Set up PHP
         if: hashFiles('composer.json') != ''
-        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc  # v2.37.1
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962  # v2.40.0
         with:
           php-version: '8.3'
 
@@ -182,7 +186,7 @@ jobs:
       # --- Python command-line tool or automation script ---
       - name: Set up Python
         if: steps.archetype.outputs.is_python_tool == 'true'
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c  # v6.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: '3.x'
 
