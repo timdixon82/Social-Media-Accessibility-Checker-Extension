@@ -1,3 +1,7 @@
+# Runner pin: jobs use ubuntu-24.04, not ubuntu-latest. ubuntu-latest now
+# resolves to Ubuntu 26.04, where the Playwright chromium install and the
+# Pa11y browser launch fail. Revisit once Playwright supports 26.04.
+
 # Deploy to GitHub Pages.
 # Runs on every push to main and on manual dispatch.
 #
@@ -62,7 +66,13 @@ jobs:
   # Use for projects with an npm build step that emits a folder (e.g. dist).
   # DELETE this job if your project is UNBUNDLED.
   build:
-    runs-on: ubuntu-latest
+    # GitHub Pages is not available for a private repository on a free
+    # account, so on a private repository there is nothing to deploy to and
+    # this job (and the deploy job that needs it) is reported as skipped,
+    # not failed. If a private repository is on a plan that includes Pages,
+    # remove this "if" line to turn the deploy on.
+    if: ${{ github.event.repository.private == false }}
+    runs-on: ubuntu-24.04
     outputs:
       is_browser_extension: ${{ steps.archetype.outputs.is_browser_extension }}
       is_wordpress_theme: ${{ steps.archetype.outputs.is_wordpress_theme }}
@@ -119,7 +129,7 @@ jobs:
 
       - name: Set up Node.js
         if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: lts/*
           cache: npm
@@ -202,7 +212,7 @@ jobs:
   deploy:
     needs: build
     if: needs.build.outputs.is_browser_extension != 'true' && needs.build.outputs.is_wordpress_theme != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -218,7 +228,7 @@ jobs:
   # DELETE or COMMENT OUT this job if your project is BUNDLED.
   #
   # build-unbundled:
-  #   runs-on: ubuntu-latest
+  #   runs-on: ubuntu-24.04
   #   steps:
   #     - name: Check out the code
   #       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -263,7 +273,7 @@ jobs:
   #
   # deploy-unbundled:
   #   needs: build-unbundled
-  #   runs-on: ubuntu-latest
+  #   runs-on: ubuntu-24.04
   #   environment:
   #     name: github-pages
   #     url: ${{ steps.deployment.outputs.page_url }}

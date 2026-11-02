@@ -1,3 +1,7 @@
+# Runner pin: jobs use ubuntu-24.04, not ubuntu-latest. ubuntu-latest now
+# resolves to Ubuntu 26.04, where the Playwright chromium install and the
+# Pa11y browser launch fail. Revisit once Playwright supports 26.04.
+
 # Accessibility checks at WCAG 2.2 AAA using Pa11y and axe-core.
 #
 # Two complementary patterns keep the checks green across projects:
@@ -105,7 +109,7 @@ concurrency:
 jobs:
   accessibility:
     name: Pa11y and axe at WCAG 2.2 AAA
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
@@ -141,7 +145,7 @@ jobs:
             echo "is_wordpress_theme=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true'
         with:
           node-version: lts/*
