@@ -18,23 +18,23 @@
     "lint": "npm run lint:js && npm run lint:css && npm run lint:html"
   },
   "dependencies": {
-    "@gutenye/ocr-browser": "1.4.8",
-    "jszip": "3.10.1",
-    "onnxruntime-web": "1.27.0",
+    "@gutenye/ocr-browser": "1.4.9",
+    "jszip": "3.10.2",
+    "onnxruntime-web": "1.30.0",
     "pdfmake": "0.3.11"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.12.1",
+    "@axe-core/playwright": "4.13.0",
     "@eslint/js": "10.0.1",
-    "@playwright/test": "1.61.1",
+    "@playwright/test": "1.63.0",
     "copy-webpack-plugin": "14.0.0",
-    "eslint": "10.7.0",
-    "globals": "17.7.0",
+    "eslint": "10.11.0",
+    "globals": "17.12.0",
     "htmlhint": "1.9.2",
-    "stylelint": "17.14.0",
+    "stylelint": "17.15.0",
     "stylelint-config-standard": "40.0.0",
-    "webpack": "5.108.4",
-    "webpack-cli": "7.2.1"
+    "webpack": "5.111.1",
+    "webpack-cli": "7.2.3"
   },
   "overrides": {
     "protobufjs": "^7.6.1"
