@@ -1,8 +1,10 @@
-# ── PRIVATE REPOS: REMOVE THIS WORKFLOW ────────────────────────────────────────
+# ── PRIVATE REPOS: THIS WORKFLOW SKIPS ITSELF ──────────────────────────────────
 # CodeQL requires GitHub Advanced Security. On a private repository without
-# Advanced Security enabled, this workflow will fail with a 403 error.
-# Delete this file from any private project repository.
-# Keep it only for public repos or private repos with Advanced Security enabled.
+# Advanced Security enabled, code scanning is not available and the analysis
+# fails. The job below therefore runs only when the repository is public.
+# On a private repository the job is reported as skipped, not failed.
+# If a private repository later gets Advanced Security, remove the "if" line
+# on the analyze job to turn the scan on.
 # ───────────────────────────────────────────────────────────────────────────────
 
 # CodeQL static analysis.
@@ -42,9 +44,10 @@ concurrency:
 
 jobs:
   analyze:
+    if: ${{ github.event.repository.private == false }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - name: Check the CI archetype
         id: archetype
         run: |
@@ -59,8 +62,8 @@ jobs:
             echo "codeql_language=javascript" >> "$GITHUB_OUTPUT"
           fi
       - name: Initialise CodeQL
-        uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938  # v4.37.9
+        uses: github/codeql-action/init@7211b7c8077ea37d8641b6271f6a365a22a5fbfa  # v4.36.0
         with:
           languages: ${{ steps.archetype.outputs.codeql_language }}
       - name: Analyse
-        uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938  # v4.37.9
+        uses: github/codeql-action/analyze@7211b7c8077ea37d8641b6271f6a365a22a5fbfa  # v4.36.0
