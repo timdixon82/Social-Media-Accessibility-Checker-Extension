@@ -21,3 +21,13 @@ updates:
     groups:
       javascript:
         patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /.github/lint-tools
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      lint-tools:
+        patterns: ["*"]
