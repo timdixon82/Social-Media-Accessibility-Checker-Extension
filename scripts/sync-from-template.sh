@@ -18,6 +18,12 @@
 #     .editorconfig               — editor configuration (team standard)
 #     .github/workflows/          — CI/CD workflow definitions
 #     .github/accessibility-tools/ — accessibility tooling
+#     .github/lint-tools/package.json and package-lock.json — lint tooling
+#                                 lock files only, and only where the project
+#                                 already has a .github/lint-tools/ folder (the
+#                                 folder is never created; .htmlvalidate.json,
+#                                 .stylelintrc.json and .gitignore are
+#                                 project-owned and never touched)
 #
 #   Pass 1.5 — agent frontmatter sync:
 #     .claude/agents/*.md   — the YAML frontmatter (between --- delimiters)
@@ -416,9 +422,43 @@ if type_gets_workflows "$_project_type"; then
       changed=$((changed + 1))
     done
   done
+
+  # Lint-tools: copy only the two dependency files, and only into projects
+  # that already have a .github/lint-tools folder. Never create the folder.
+  # Honours the same protect list as the other github templates.
+  lt_src="$template/templates/.github/lint-tools"
+  lt_dst="$project_root/.github/lint-tools"
+  if [ ! -d "$lt_dst" ]; then
+    echo "  skipped:   .github/lint-tools/ (project has no lint-tools folder)"
+  else
+    for fname in package.json package-lock.json; do
+      src_file="$lt_src/$fname"
+      dst_file="$lt_dst/$fname"
+
+      if [ ! -f "$src_file" ]; then
+        echo "  WARNING: $src_file not found in master templates; skipping"
+        continue
+      fi
+
+      if [ -n "$_protect_list" ] && printf '%s\n' "$_protect_list" | grep -qxF "$fname" 2>/dev/null; then
+        echo "  protected: .github/lint-tools/$fname"
+        continue
+      fi
+
+      if [ -f "$dst_file" ] && cmp -s "$src_file" "$dst_file"; then
+        echo "  unchanged: .github/lint-tools/$fname"
+        continue
+      fi
+
+      cp "$src_file" "$dst_file"
+      echo "  synced:    .github/lint-tools/$fname"
+      changed=$((changed + 1))
+    done
+  fi
 else
   echo "  skipped:   .github/workflows/ (project type '$_project_type' does not use build workflows)"
   echo "  skipped:   .github/accessibility-tools/ (same reason)"
+  echo "  skipped:   .github/lint-tools/ (same reason)"
 fi
 
 # ── Pass 1.5: agent frontmatter sync ─────────────────────────────────────────
