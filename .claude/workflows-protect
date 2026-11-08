@@ -1,0 +1,7 @@
+# Workflow files listed here are never overwritten by a template sync.
+# See scripts/sync-from-template.sh in the team master for how this file is read.
+#
+# playwright.yml: the template ships a commented-out scaffold. This project
+# has two real Playwright accessibility tests for the built extension, so
+# its playwright.yml builds the extension and runs them under xvfb-run.
+playwright.yml
