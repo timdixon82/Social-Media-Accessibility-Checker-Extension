@@ -34,3 +34,7 @@ Autonomous decisions taken during the build:
 - Pinned `manifest.json` version (1.1.4) as the canonical version and aligned `package.json` to match (was 1.0.0).
 - Set `min-width: 300px; max-width: 100%` on popup body as a low-risk improvement; documented the remaining platform constraint as an exception.
 - The accessibility workflow uses HTMLHint and ESLint as a static proxy because Chrome extension pages cannot be served to a CLI accessibility tool without a running browser instance. This gap is recorded in accessibility.md and is deferred to Carol's test pass.
+
+## [2026-11-08] ingest | npm tool folders moved to ci-tools
+
+The lint-tools and accessibility-tools folders moved from .github to a top-level ci-tools folder, because Dependabot refuses to create npm update pull requests for a root .github folder. The lint and accessibility workflows and the Dependabot entries now point at ci-tools. The project had no Dependabot entry for the accessibility tools folder, so one was added. This follows the pilot in work folder 058 of the AgentTeam repository.

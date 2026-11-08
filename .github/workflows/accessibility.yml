@@ -7,7 +7,7 @@
 # Two complementary patterns keep the checks green across projects:
 #
 #   Tool pinning (template pattern). Pa11y, @axe-core/cli, and wait-on are
-#   pinned in .github/accessibility-tools/package.json so Dependabot can
+#   pinned in ci-tools/accessibility-tools/package.json so Dependabot can
 #   track and propose version bumps automatically. They are installed via
 #   npm ci against that manifest, never with npm install -g.
 #
@@ -150,18 +150,18 @@ jobs:
         with:
           node-version: lts/*
           cache: npm
-          cache-dependency-path: .github/accessibility-tools/package-lock.json
+          cache-dependency-path: ci-tools/accessibility-tools/package-lock.json
 
       - name: Install accessibility tools
-        # Tools are managed in .github/accessibility-tools/package.json so
+        # Tools are managed in ci-tools/accessibility-tools/package.json so
         # Dependabot can track and propose version bumps automatically.
         if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true'
         run: npm ci
-        working-directory: .github/accessibility-tools
+        working-directory: ci-tools/accessibility-tools
 
       - name: Add accessibility tools to PATH
         if: steps.archetype.outputs.is_browser_extension != 'true' && steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true'
-        run: echo "$GITHUB_WORKSPACE/.github/accessibility-tools/node_modules/.bin" >> "$GITHUB_PATH"
+        run: echo "$GITHUB_WORKSPACE/ci-tools/accessibility-tools/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Set up Chrome and ChromeDriver
         id: chrome

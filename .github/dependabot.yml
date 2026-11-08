@@ -23,11 +23,23 @@ updates:
         patterns: ["*"]
 
   - package-ecosystem: npm
-    directory: /.github/lint-tools
+    directory: /ci-tools/lint-tools
     schedule:
       interval: weekly
     cooldown:
       default-days: 7
     groups:
       lint-tools:
+        patterns: ["*"]
+
+  # Added during the 058 ci-tools move: this project had no entry for the
+  # accessibility tools folder, so Dependabot never watched it.
+  - package-ecosystem: npm
+    directory: /ci-tools/accessibility-tools
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      accessibility-tools:
         patterns: ["*"]
