@@ -20,7 +20,7 @@
 # The npm steps are gated on a root package.json, so a static-content
 # project (no manifest, no build) does not fail this workflow for lacking
 # one. That archetype instead gets an HTML/CSS-validation-only path, using
-# a pinned tool manifest at .github/lint-tools/package.json — the same
+# a pinned tool manifest at ci-tools/lint-tools/package.json — the same
 # pattern accessibility.yml uses for its accessibility tools — so
 # Dependabot can still track and bump the validators' versions.
 #
@@ -97,7 +97,7 @@ jobs:
       - name: Set up Node.js
         # Skipped for a wordpress-theme project with no root package.json
         # (for example LLBS Website): that combination has neither an npm
-        # project nor a .github/lint-tools manifest, so setup-node's cache
+        # project nor a ci-tools/lint-tools manifest, so setup-node's cache
         # resolution against cache-dependency-path below fails hard with
         # "Some specified paths were not resolved" rather than skipping
         # gracefully. Every other case (non-wordpress-theme, or
@@ -108,7 +108,7 @@ jobs:
         with:
           node-version: lts/*
           cache: npm
-          cache-dependency-path: .github/lint-tools/package-lock.json
+          cache-dependency-path: ci-tools/lint-tools/package-lock.json
 
       - name: Install dependencies
         if: steps.archetype.outputs.is_python_tool != 'true' && hashFiles('package.json') != ''
@@ -130,34 +130,34 @@ jobs:
       - name: Install HTML/CSS validation tools (static-content)
         if: steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true' && hashFiles('package.json') == ''
         run: npm ci
-        working-directory: .github/lint-tools
+        working-directory: ci-tools/lint-tools
 
       - name: Add validation tools to PATH
         if: steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true' && hashFiles('package.json') == ''
-        run: echo "$GITHUB_WORKSPACE/.github/lint-tools/node_modules/.bin" >> "$GITHUB_PATH"
+        run: echo "$GITHUB_WORKSPACE/ci-tools/lint-tools/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Validate HTML (static-content)
         if: steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true' && hashFiles('package.json') == ''
         run: |
-          find . -name '*.html' -not -path './.git/*' -not -path './.github/*' -not -path './node_modules/*' -print0 \
-            | xargs -0 --no-run-if-empty html-validate --config .github/lint-tools/.htmlvalidate.json
+          find . -name '*.html' -not -path './.git/*' -not -path './.github/*' -not -path './ci-tools/*' -not -path './node_modules/*' -print0 \
+            | xargs -0 --no-run-if-empty html-validate --config ci-tools/lint-tools/.htmlvalidate.json
 
       - name: Validate CSS (static-content)
         if: steps.archetype.outputs.is_python_tool != 'true' && steps.archetype.outputs.is_wordpress_theme != 'true' && hashFiles('package.json') == ''
         run: |
-          find . -name '*.css' -not -path './.git/*' -not -path './.github/*' -not -path './node_modules/*' -print0 \
-            | xargs -0 --no-run-if-empty stylelint --config .github/lint-tools/.stylelintrc.json
+          find . -name '*.css' -not -path './.git/*' -not -path './.github/*' -not -path './ci-tools/*' -not -path './node_modules/*' -print0 \
+            | xargs -0 --no-run-if-empty stylelint --config ci-tools/lint-tools/.stylelintrc.json
 
       # --- wordpress-theme archetype, no root package.json: a PHP-only
       # theme (for example LLBS Website) has neither an npm project nor a
-      # .github/lint-tools manifest, so the paths above do not apply. Run a
+      # ci-tools/lint-tools manifest, so the paths above do not apply. Run a
       # syntax-only PHP check instead. A wordpress-theme project that DOES
       # have a root package.json (for example Tim Dixon WordPress Theme)
       # never reaches this step: the npm path above already lints it. ---
       - name: Check PHP syntax (wordpress-theme, no package.json)
         if: steps.archetype.outputs.is_wordpress_theme == 'true' && hashFiles('package.json') == ''
         run: |
-          find . -name '*.php' -not -path './.git/*' -not -path './.github/*' -not -path './node_modules/*' -not -path './vendor/*' \
+          find . -name '*.php' -not -path './.git/*' -not -path './.github/*' -not -path './ci-tools/*' -not -path './node_modules/*' -not -path './vendor/*' \
             -exec php -l {} \; | grep -v "No syntax errors" | tee /tmp/php-errors.txt
           [ ! -s /tmp/php-errors.txt ]
 
