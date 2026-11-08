@@ -98,7 +98,7 @@ if [ -f "$tv_file" ]; then
       echo "MASTER UNREACHABLE: cannot read template-version from $tv_file."
     elif [ "$proj_v" != "$master_v" ]; then
       echo "SYNC DUE: this project was scaffolded from template $proj_v; master is now $master_v."
-      echo "  Run: bash scripts/sync-from-template.sh \"$master\""
+      echo "  Run the team repository's copy, not this project's own: bash \"$master/scripts/sync-from-template.sh\" \"$master\" \"$proj\""
     else
       echo "Template: in sync ($proj_v)."
     fi
@@ -117,7 +117,7 @@ if [ -f "$tv_file" ]; then
           echo "WARNING: safety hook sha256 mismatch — pre-tool-use.sh may have been locally modified."
           echo "  Expected: $expected_sha"
           echo "  Actual:   $actual_sha"
-          echo "  Run: bash scripts/sync-from-template.sh \"$master\" to restore byte parity."
+          echo "  Run the team repository's copy to restore byte parity: bash \"$master/scripts/sync-from-template.sh\" \"$master\" \"$proj\""
         fi
       fi
     fi
