@@ -16,7 +16,7 @@ let port = null;
 
 // Register the listener BEFORE notifying the parent, so we can never miss
 // the 'init' message that the parent sends after receiving 'sandboxLoaded'.
-window.addEventListener('message', (e) => { // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation: chrome.runtime.getURL is unavailable in a sandboxed page; e.source === window.parent is the equivalent guard, and the parent's reply channel is a transferred port.
+window.addEventListener('message', (e) => { // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation - chrome.runtime.getURL is unavailable in a sandboxed page; e.source === window.parent is the equivalent guard, and the parent's reply channel is a transferred port.
   // Only accept messages from the direct parent frame.
   if (e.source !== window.parent) return;
   // Accept exactly one init; ignore any later one.
@@ -50,4 +50,4 @@ window.addEventListener('message', (e) => { // nosemgrep: javascript.browser.sec
 // listener is registered (the bundle is large and takes time to parse).
 // '*' is the only option: the parent cannot be addressed by origin string
 // from here, and this bootstrap message carries no data.
-window.parent?.postMessage({ type: 'sandboxLoaded' }, '*'); // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration: bootstrap message, no data.
+window.parent?.postMessage({ type: 'sandboxLoaded' }, '*'); // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration - bootstrap message, no data.

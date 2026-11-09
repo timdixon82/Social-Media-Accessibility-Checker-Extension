@@ -72,7 +72,7 @@ let   ocrMsgId     = 0;
 // Accept it only from this frame's window and only from an opaque origin
 // (a normal web page would report a real origin and is refused).
 const sandboxLoaded = new Promise((resolve) => {
-  const onLoaded = (e) => { // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation: e.source and e.origin === 'null' are checked on the next lines.
+  const onLoaded = (e) => { // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation - e.source and e.origin === 'null' are checked on the next lines.
     if (e.source !== ocrFrame.contentWindow) return;
     if (e.origin !== 'null') return;
     if (e.data?.type !== 'sandboxLoaded') return;
@@ -113,7 +113,7 @@ function initSandbox() {
       port1.onmessage = (m) => handlePortMessage(m, settle);
       // '*' is unavoidable for an opaque-origin target. The payload is public
       // extension asset URLs plus the port; image data never uses this call.
-      ocrFrame.contentWindow.postMessage({
+      const init = {
         type:      'init',
         wasmPaths: chrome.runtime.getURL('vendor/ort/'),
         models: {
@@ -121,7 +121,8 @@ function initSandbox() {
           recognitionPath: chrome.runtime.getURL('vendor/models/ch_PP-OCRv4_rec_infer.onnx'),
           dictionaryPath:  chrome.runtime.getURL('vendor/models/ppocr_keys_v1.txt'),
         },
-      }, '*', [port2]); // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration: opaque-origin sandbox; only public URLs and a port are sent; images use the port.
+      };
+      ocrFrame.contentWindow.postMessage(init, '*', [port2]); // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration - opaque-origin sandbox; only public URLs and a port are sent; images use the port.
     });
   });
   return sandboxReady;
