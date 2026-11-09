@@ -16,7 +16,22 @@
 #
 #   Pass 1c — root and github template sync (verbatim overwrite):
 #     .editorconfig               — editor configuration (team standard)
-#     .github/workflows/          — CI/CD workflow definitions
+#     .gitignore                  — NOT replaced. Required lines (today
+#                                   .claude/transcripts/) are appended if
+#                                   missing; nothing is removed or changed.
+#     .github/workflows/         — CI/CD workflow definitions
+#     .github/scripts/           - scripts the workflows call (today
+#                                  deploy-publish.sh, used by deploy.yml)
+#     .github/deploy-publish.txt - the project's Pages publish list. It is
+#                                  PROJECT-OWNED: created only when absent
+#                                  (a generated default that keeps just the
+#                                  canonical folders the project has), and
+#                                  never overwritten or reported as drift.
+#                                  Not created for the browser-extension and
+#                                  wordpress-theme archetypes, nor for a
+#                                  project that lists deploy.yml in
+#                                  .claude/workflows-protect (it migrates by
+#                                  hand; see docs/patterns/github-pages-deploy.md).
 #     ci-tools/lint-tools/ and ci-tools/accessibility-tools/ —
 #                                 package.json and package-lock.json only.
 #                                 Dot-files and any other file in the tool
@@ -55,7 +70,8 @@
 # What it never touches:
 #   Agent PROJECT OVERLAY sections
 #   docs/  (the project wiki)
-#   CLAUDE.md, .gitignore, VERSION
+#   CLAUDE.md, VERSION
+#   Existing .gitignore lines (only missing required lines are appended)
 #
 # After syncing it:
 #   - Updates .claude/template-version with the master VERSION
@@ -411,6 +427,7 @@ ROOT_MANIFEST=(
 
 GITHUB_TEMPLATES_MANIFEST=(
   "workflows"
+  "scripts"
 )
 
 # Determine project type and whether workflows apply.
@@ -434,6 +451,33 @@ for item in "${ROOT_MANIFEST[@]}"; do
 
   cp "$src" "$dst"
   echo "  synced:    $item"
+  changed=$((changed + 1))
+done
+
+# .gitignore is project-owned, so it is never replaced. Each line listed here
+# is appended only if the project's .gitignore does not already hold it
+# (an exact whole-line match). Nothing is removed or reordered, and a missing
+# .gitignore is created with just these lines.
+GITIGNORE_REQUIRED=(
+  ".claude/transcripts/"
+)
+
+_gi="$project_root/.gitignore"
+for _line in "${GITIGNORE_REQUIRED[@]}"; do
+  # A trailing carriage return (Windows line endings) is ignored when matching.
+  # grep -c reads all input, so there is no early-exit pipe failure under pipefail.
+  if [ -f "$_gi" ] && [ "$(tr -d '\r' < "$_gi" | grep -cxF "$_line" || true)" -gt 0 ]; then
+    echo "  unchanged: .gitignore ($_line already listed)"
+    continue
+  fi
+  # Start on a fresh line if the file does not end with a newline, then leave
+  # one blank line before the new comment.
+  if [ -s "$_gi" ]; then
+    [ -z "$(tail -c 1 "$_gi")" ] || printf '\n' >> "$_gi"
+    printf '\n' >> "$_gi"
+  fi
+  printf '# Local audit trail written by a team hook, not for the repository\n%s\n' "$_line" >> "$_gi"
+  echo "  added:     .gitignore ($_line)"
   changed=$((changed + 1))
 done
 
@@ -505,6 +549,36 @@ if type_gets_workflows "$_project_type"; then
       changed=$((changed + 1))
     done
   done
+
+  # Pages publish list: project-owned. Created only when absent, never
+  # overwritten, so it is deliberately NOT in GITHUB_TEMPLATES_MANIFEST (that
+  # loop overwrites). The generated default keeps only the canonical folders
+  # the project has; the deploy workflow fails closed if the list is wrong.
+  _pub_src="$template/templates/.github/deploy-publish.txt"
+  _pub_script="$template/templates/.github/scripts/deploy-publish.sh"
+  _pub_dst="$project_root/.github/deploy-publish.txt"
+  _pub_archetype=""
+  if [ -f "$project_root/.github/ci-archetype" ]; then
+    _pub_archetype="$(tr -d '[:space:]' < "$project_root/.github/ci-archetype")"
+  fi
+  if [ -e "$_pub_dst" ]; then
+    echo "  kept:      .github/deploy-publish.txt (project publish list)"
+  elif [ "$_pub_archetype" = "browser-extension" ] || [ "$_pub_archetype" = "wordpress-theme" ]; then
+    echo "  skipped:   .github/deploy-publish.txt (archetype '$_pub_archetype' has no Pages site)"
+  elif [ -n "$_protect_list" ] && printf '%s\n' "$_protect_list" | grep -qxF "deploy.yml" 2>/dev/null; then
+    echo "  skipped:   .github/deploy-publish.txt (deploy.yml is protected; migrate by hand, see docs/patterns/github-pages-deploy.md)"
+  elif [ ! -f "$_pub_src" ] || [ ! -f "$_pub_script" ]; then
+    echo "  WARNING: publish list template or script not found in master templates; skipping"
+  else
+    if DEPLOY_PUBLISH_ROOT="$project_root" bash "$_pub_script" default "$_pub_src" > "$_pub_dst.tmp"; then
+      mv "$_pub_dst.tmp" "$_pub_dst"
+      echo "  created:   .github/deploy-publish.txt (generated default, review before merging)"
+      changed=$((changed + 1))
+    else
+      rm -f "$_pub_dst.tmp"
+      echo "  WARNING: could not generate .github/deploy-publish.txt; create it by hand"
+    fi
+  fi
 
   # npm tool folders: copy only the two dependency files, into ci-tools/<tool>,
   # according to each tool's state. Sync never moves a folder. Honours the same
