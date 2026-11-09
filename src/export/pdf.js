@@ -280,11 +280,6 @@ function buildDocDefinition(post, imageReports, timestamp) {
 export async function buildPdf(post, imageReports, timestamp) {
   const pdfMake = await loadPdfMake();
   const docDef = buildDocDefinition(post, imageReports, timestamp);
-  return new Promise((resolve, reject) => {
-    try {
-      pdfMake.createPdf(docDef).getBlob(resolve);
-    } catch (err) {
-      reject(err);
-    }
-  });
+  // pdfmake 0.3: getBlob() returns a promise and takes no callback.
+  return pdfMake.createPdf(docDef).getBlob();
 }
