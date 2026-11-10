@@ -48,64 +48,82 @@ if (themeToggle) {
 
 const ocrFrame = document.createElement('iframe');
 ocrFrame.src = chrome.runtime.getURL('sandbox/sandbox.html');
-ocrFrame.style.display = 'none';
+// Not display:none. A frame that is not rendered can stall image.decode(),
+// which the OCR library uses, so OCR would hang once the page idles. Keep it
+// rendered but invisible, inert and hidden from assistive technology.
+ocrFrame.style.cssText = 'position:absolute;width:1px;height:1px;border:0;opacity:0;pointer-events:none;';
+ocrFrame.tabIndex = -1;
 ocrFrame.setAttribute('aria-hidden', 'true');
 document.body.appendChild(ocrFrame);
 
-// Derive the sandbox's origin from its URL so postMessage calls can be
-// targeted precisely instead of using '*'.  new URL(...).origin gives the
-// chrome-extension://<id> prefix that Chrome enforces.
-const sandboxOrigin = new URL(ocrFrame.src).origin;
-
+// The sandbox is a manifest sandbox page, so it has an opaque origin
+// (serialised as "null"). No target origin string can match it, which means
+// window.postMessage into the frame must use '*'. Instead, the app and the
+// sandbox do a one-time handshake that transfers a private MessagePort; all
+// OCR traffic (including image data) then travels over that port. Replies
+// arrive on the port, so no reply origin check is needed.
+let   ocrPort      = null;
 let   sandboxReady = null;
 const pendingOcr   = new Map();
 let   ocrMsgId     = 0;
 
-window.addEventListener('message', (e) => { // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation — e.source check on the next line is the correct origin guard for same-extension iframes; a string e.origin comparison is not required here.
-  if (e.source !== ocrFrame.contentWindow) return;
-  const { type, id, detections, error } = e.data || {};
-  if (type !== 'ocrResult') return;
-  const pending = pendingOcr.get(id);
-  if (!pending) return;
-  pendingOcr.delete(id);
-  if (error) pending.reject(new Error(error));
-  else pending.resolve(detections);
+// Register for the sandbox's one-off 'sandboxLoaded' message as soon as the
+// frame exists, so the message cannot be missed if the sandbox is quick.
+// Accept it only from this frame's window and only from an opaque origin
+// (a normal web page would report a real origin and is refused).
+const sandboxLoaded = new Promise((resolve) => {
+  const onLoaded = (e) => { // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation - e.source and e.origin === 'null' are checked on the next lines.
+    if (e.source !== ocrFrame.contentWindow) return;
+    if (e.origin !== 'null') return;
+    if (e.data?.type !== 'sandboxLoaded') return;
+    window.removeEventListener('message', onLoaded); // accept once only
+    resolve();
+  };
+  window.addEventListener('message', onLoaded);
 });
+
+function handlePortMessage(m, settle) {
+  const { type, id, detections, error } = m.data || {};
+  if (type === 'ready')          settle.resolve();
+  else if (type === 'initError') settle.reject(new Error(String(error)));
+  else if (type === 'ocrResult' && typeof id === 'number') {
+    const pending = pendingOcr.get(id);
+    if (!pending) return;
+    pendingOcr.delete(id);
+    if (error) pending.reject(new Error(String(error)));
+    else pending.resolve(detections);
+  }
+}
 
 function initSandbox() {
   if (sandboxReady) return sandboxReady;
   sandboxReady = new Promise((resolve, reject) => {
-    let timer;
-    const cleanup = () => {
-      window.removeEventListener('message', onMsg);
-      clearTimeout(timer);
-    };
     // Fail clearly after 120 s so the user sees an error instead of a hung page.
-    timer = setTimeout(() => {
-      cleanup();
+    const timer = setTimeout(() => {
       reject(new Error('OCR sandbox did not respond within 120 s — model files may not have loaded.'));
     }, 120000);
-
-    const sendInit = () => ocrFrame.contentWindow.postMessage({
-      type:            'init',
-      extensionOrigin: window.location.origin, // passed to sandbox so it can reply to us precisely rather than using '*'
-      wasmPaths:       chrome.runtime.getURL('vendor/ort/'),
-      models: {
-        detectionPath:   chrome.runtime.getURL('vendor/models/ch_PP-OCRv4_det_infer.onnx'),
-        recognitionPath: chrome.runtime.getURL('vendor/models/ch_PP-OCRv4_rec_infer.onnx'),
-        dictionaryPath:  chrome.runtime.getURL('vendor/models/ppocr_keys_v1.txt'),
-      },
-    }, sandboxOrigin); // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration — target is sandboxOrigin (chrome-extension://<id>), not '*'
-
-    const onMsg = (e) => {
-      if (e.source !== ocrFrame.contentWindow) return; // nosemgrep: javascript.browser.security.insufficient-postmessage-origin-validation.insufficient-postmessage-origin-validation — e.source check is the correct guard for same-extension iframes
-      // sandboxLoaded: sandbox script has finished executing and its message
-      // listener is active — safe to send 'init' now without race conditions.
-      if (e.data?.type === 'sandboxLoaded') { sendInit(); return; }
-      if (e.data?.type === 'ready')         { cleanup(); resolve(); }
-      if (e.data?.type === 'initError')     { cleanup(); reject(new Error(e.data.error)); }
+    const settle = {
+      resolve: () => { clearTimeout(timer); resolve(); },
+      reject:  (err) => { clearTimeout(timer); reject(err); },
     };
-    window.addEventListener('message', onMsg);
+
+    sandboxLoaded.then(() => {
+      const { port1, port2 } = new MessageChannel();
+      ocrPort = port1;
+      port1.onmessage = (m) => handlePortMessage(m, settle);
+      // '*' is unavoidable for an opaque-origin target. The payload is public
+      // extension asset URLs plus the port; image data never uses this call.
+      const init = {
+        type:      'init',
+        wasmPaths: chrome.runtime.getURL('vendor/ort/'),
+        models: {
+          detectionPath:   chrome.runtime.getURL('vendor/models/ch_PP-OCRv4_det_infer.onnx'),
+          recognitionPath: chrome.runtime.getURL('vendor/models/ch_PP-OCRv4_rec_infer.onnx'),
+          dictionaryPath:  chrome.runtime.getURL('vendor/models/ppocr_keys_v1.txt'),
+        },
+      };
+      ocrFrame.contentWindow.postMessage(init, '*', [port2]); // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration - opaque-origin sandbox; only public URLs and a port are sent; images use the port.
+    });
   });
   return sandboxReady;
 }
@@ -119,8 +137,17 @@ async function runOcrInSandbox(dataUrl) {
   return new Promise((resolve, reject) => {
     const id = ++ocrMsgId;
     pendingOcr.set(id, { resolve, reject });
-    ocrFrame.contentWindow.postMessage({ type: 'ocr', id, dataUrl }, sandboxOrigin); // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration — target is sandboxOrigin (chrome-extension://<id>), not '*'
+    ocrPort.postMessage({ type: 'ocr', id, dataUrl }); // private port, no origin needed
   });
+}
+
+// Test-only hook, used by tests/ocr/ocr.spec.js. It exists only when the page
+// URL has ?test=1. It adds no capability: it exposes the same OCR call the
+// page already makes for every image, on the extension's own app page, which
+// is not web-accessible (web pages cannot open or script it). Nothing is
+// exposed in normal use.
+if (new window.URLSearchParams(window.location.search).get('test') === '1') {
+  window.__smaceTest = { runOcr: runOcrInSandbox, ready: initSandbox };
 }
 
 // All image analysis is serialised through this chain to prevent concurrent
