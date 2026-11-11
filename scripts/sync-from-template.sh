@@ -70,7 +70,9 @@
 # What it never touches:
 #   Agent PROJECT OVERLAY sections
 #   docs/  (the project wiki)
-#   CLAUDE.md, VERSION
+#   The project section of CLAUDE.md (Pass 3 replaces only the team section
+#   and the generated project map; see scripts/claude-md-sync.sh)
+#   VERSION
 #   Existing .gitignore lines (only missing required lines are appended)
 #
 # After syncing it:
@@ -327,6 +329,11 @@ SCRIPTS_MANIFEST=(
   "scripts/sync-from-template.sh"
   "scripts/record-backport.sh"
   "scripts/tasks.sh"
+  "scripts/token-report.sh"
+  "scripts/tier-suggest.sh"
+  "scripts/review-precheck.sh"
+  "scripts/wiki-log.sh"
+  "scripts/handoff.sh"
 )
 
 # The npm tool folders (see the Pass 1c notes at the top of this file).
@@ -799,6 +806,28 @@ for tfile in "$template"/.claude/agents/*/*.md; do
   _update_core "$tfile" "$pfile" ".claude/agents/$subdir/$name"
 done
 
+# ── Pass 3: CLAUDE.md (Decision 024) ──────────────────────────────────────────
+# The team section is replaced from the master, the project section is kept,
+# and the generated project map is refreshed. A legacy file is migrated once.
+# Always the master's copy of the helper, so the logic matches the master.
+
+echo ""
+echo "Pass 3: CLAUDE.md team section and project map"
+cm_script="$template/scripts/claude-md-sync.sh"
+if [ -f "$cm_script" ]; then
+  cm_out="$(bash "$cm_script" "$template" "$project_root")" || {
+    echo "ERROR: claude-md-sync.sh failed for $project_root." >&2
+    exit 1
+  }
+  printf '%s\n' "$cm_out" | sed 's/^/  /'
+  case "$cm_out" in
+    *"CLAUDE.md: unchanged"*|*"CLAUDE.md: skipped"*) ;;
+    *) changed=$((changed + 1)) ;;
+  esac
+else
+  echo "  skipped: master has no scripts/claude-md-sync.sh"
+fi
+
 # ── Update stamps ─────────────────────────────────────────────────────────────
 # Write stamps only when their content actually changes, so a no-op sync does
 # not leave the repo with uncommitted tracked changes (which would block the
@@ -837,6 +866,7 @@ if run_parity_test "$project_root" "$template"; then
   echo ""
   echo "Sync complete. $changed item(s) changed."
   echo "  PROJECT OVERLAY sections in agent files were not touched."
+  echo "  The project section of CLAUDE.md was not touched, apart from its generated map."
   echo "  docs/ wiki was not touched."
   echo ""
   echo "Review the changes, then open a pull request."

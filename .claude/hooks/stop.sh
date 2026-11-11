@@ -15,6 +15,16 @@ input=$(cat)
 token_count=$(printf '%s' "$input" \
   | jq -r '.usage.total_tokens // .token_count // .tokens // ""' 2>/dev/null) || token_count=""
 
+# Claude Code does not send a token count on Stop, but it does send the
+# transcript path. Count this turn's tokens from it (Decision 023).
+if [ -z "$token_count" ]; then
+  transcript=$(printf '%s' "$input" | jq -r '.transcript_path // ""' 2>/dev/null) || transcript=""
+  report="$CLAUDE_PROJECT_DIR/scripts/token-report.sh"
+  if [ -n "$transcript" ] && [ -f "$transcript" ] && [ -f "$report" ]; then
+    token_count=$(bash "$report" --last-turn "$transcript" 2>/dev/null) || token_count=""
+  fi
+fi
+
 # Append to usage.md if we have a figure and the file exists.
 usage_file="$CLAUDE_PROJECT_DIR/usage.md"
 if [ -n "$token_count" ] && [ -f "$usage_file" ]; then

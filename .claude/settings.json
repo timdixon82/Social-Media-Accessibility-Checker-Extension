@@ -83,7 +83,12 @@
       "Bash(git filter-repo*)",
       "Bash(gh repo delete*)",
       "mcp__github__delete_repository",
-      "mcp__github__delete_branch"
+      "mcp__github__delete_branch",
+      "Read(./Inputs/archive/**)",
+      "Read(./outputs/archive/**)",
+      "Read(./.understand-anything/**)",
+      "Read(./.playwright-mcp/**)",
+      "Read(./test-results/**)"
     ]
   },
   "hooks": {

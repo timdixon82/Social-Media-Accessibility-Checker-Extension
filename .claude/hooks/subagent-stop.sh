@@ -30,6 +30,15 @@
 input=$(cat)
 reason=$(printf '%s' "$input" | jq -r '.reason // ""' 2>/dev/null)
 token_count=$(printf '%s' "$input" | jq -r '.usage.total_tokens // ""' 2>/dev/null)
+# Claude Code sends the subagent's own transcript path rather than a token
+# count. Count the subagent's tokens from it (Decision 023).
+if [ -z "$token_count" ]; then
+  agent_transcript=$(printf '%s' "$input" | jq -r '.agent_transcript_path // ""' 2>/dev/null)
+  if [ -n "$agent_transcript" ] && [ -f "$agent_transcript" ] \
+      && [ -f "$CLAUDE_PROJECT_DIR/scripts/token-report.sh" ]; then
+    token_count=$(bash "$CLAUDE_PROJECT_DIR/scripts/token-report.sh" --total "$agent_transcript" 2>/dev/null) || token_count=""
+  fi
+fi
 agent=$(printf '%s' "$input" | jq -r '.agent_name // .subagent_name // ""' 2>/dev/null)
 
 work_dir="$CLAUDE_PROJECT_DIR/.claude/work"
