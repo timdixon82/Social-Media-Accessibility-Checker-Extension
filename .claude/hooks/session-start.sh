@@ -274,6 +274,16 @@ if [ -f "$next_q_script" ] && [ -x "$next_q_script" ]; then
   [ -n "$next_q" ] && echo "Next free Q-number: $next_q"
 fi
 
+# Surface overdue tasks only when there are any (Decision 023: event-driven,
+# replaces the weekly manual `tasks.sh --aged` run). Prints nothing when none.
+tasks_script="$proj/scripts/tasks.sh"
+if [ -f "$tasks_script" ]; then
+  aged_count=$(bash "$tasks_script" --aged 2>/dev/null | grep -c '^\[' || true)
+  if [ "${aged_count:-0}" -gt 0 ]; then
+    echo "Overdue tasks: ${aged_count}. Run: bash scripts/tasks.sh --aged"
+  fi
+fi
+
 # Refresh outputs/status.html so Tim always sees a current dashboard at
 # session open. Run the script only if it exists and is executable.
 # Any failure is silently discarded; the session is never blocked.

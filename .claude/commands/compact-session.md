@@ -10,11 +10,7 @@ Write a structured session summary to the current work folder's log.md. The summ
 
 2. Read the current work folder's `brief.md` to confirm the active work and routing plan.
 
-3. Gather the following information:
-   - The last message Tim sent (from `.claude/transcripts/` if the file exists, or from the current conversation).
-   - Any open subagent dispatches or agents currently in flight (check the work folder's `log.md` for recent subagent-stop entries).
-   - All open pull requests relevant to this work folder (run `gh pr list --state open` if the GitHub CLI is available).
-   - Any unresolved items: open questions in `outputs/questions.md` that are relevant to this work folder, and any items in the work folder's brief that are not yet done.
+3. Run `bash scripts/handoff.sh` and use its output for open tasks, active folders, open questions and open pull requests. Do not gather these by hand. Add only what a script cannot know: Tim's last message, and any agents still in flight.
 
 4. Write the summary as a new entry in the current work folder's `log.md`, using this format:
 
