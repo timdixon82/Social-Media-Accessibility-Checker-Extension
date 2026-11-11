@@ -60,14 +60,24 @@ jobs:
   # gitleaks-action wrapper: the wrapper needs a licence key for organisation
   # accounts (GITLEAKS_LICENSE) and posts pull request comments, while the
   # binary needs no key under any account type and sends nothing anywhere.
-  # Scope: pull requests scan only the commits the PR adds; pushes to main and
-  # the weekly run scan the full history. Any finding fails the job. --redact
-  # masks every secret value in the log, so a leak is never reprinted;
-  # --verbose prints each finding (rule, file, line, commit) so it can be fixed.
-  # To allow a known false positive, add a .gitleaks.toml at the repository
-  # root (gitleaks reads it automatically); see docs/patterns/private-repo-github-actions.md.
+  # Scope: pull requests scan only the commits the PR adds (merge commits
+  # included); pushes to main and the weekly run scan the full history. Any
+  # finding fails the job. --redact masks every secret value in the log, so a
+  # leak is never reprinted. The log shows only rule, file, line and a short
+  # commit hash, printed with jq from a redacted JSON report (no --verbose,
+  # which would print author names and emails).
+  # A pull request cannot switch off its own scan. On pull requests the
+  # .gitleaks.toml and .gitleaksignore are read from the base branch, never
+  # from the PR, and inline "gitleaks:allow" comments are ignored on every run.
+  # To allow a known false positive, add a .gitleaks.toml (start it with
+  # [extend] and useDefault = true) or a .gitleaksignore on main, not in the PR;
+  # see docs/patterns/private-repo-github-actions.md. The change takes effect
+  # once it is merged.
   # The release archive is verified against a pinned SHA-256 before it runs.
   # Update version and checksum together, from the release's checksums file.
+  # SYNC NOTE: sync-from-template.sh overwrites security.yml unless the project
+  # lists it in .claude/workflows-protect. A project that protects security.yml
+  # does not receive changes to this job and must re-copy it by hand.
   # ─────────────────────────────────────────────────────────────────────────────
   gitleaks:
     runs-on: ubuntu-24.04
@@ -96,10 +106,45 @@ jobs:
         run: |
           # No --verbose: it prints each commit's author name and email. The JSON
           # report is redacted, stays in RUNNER_TEMP, and is never uploaded.
+          # --ignore-gitleaks-allow stops inline "gitleaks:allow" comments from
+          # silencing a finding, on every run (pull request, push and schedule).
           report="${RUNNER_TEMP}/gitleaks-report.json"
-          args=(git --redact --no-banner --no-color --report-format json --report-path "${report}")
+          args=(git --redact --no-banner --no-color --ignore-gitleaks-allow --report-format json --report-path "${report}")
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            args+=(--log-opts="${PR_BASE_SHA}..${PR_HEAD_SHA}")
+            # gitleaks exits 0 when git itself fails, so prove both commits exist
+            # first. Otherwise a missing commit would look like a clean scan.
+            for sha in "${PR_BASE_SHA}" "${PR_HEAD_SHA}"; do
+              git cat-file -e "${sha}^{commit}" || { echo "::error::Commit ${sha:0:12} is missing from the checkout; cannot scan"; exit 1; }
+            done
+            # Read the allowlist config and ignore file from the base branch, never
+            # from the pull request, so a PR cannot switch off its own scan.
+            # An explicit --config wins over a .gitleaks.toml in the checkout.
+            config="${RUNNER_TEMP}/gitleaks-base.toml"
+            ignorefile="${RUNNER_TEMP}/gitleaks-base.ignore"
+            if git cat-file -e "${PR_BASE_SHA}:.gitleaks.toml" 2>/dev/null; then
+              git show "${PR_BASE_SHA}:.gitleaks.toml" > "${config}"
+            else
+              printf '[extend]\nuseDefault = true\n' > "${config}"
+            fi
+            if git cat-file -e "${PR_BASE_SHA}:.gitleaksignore" 2>/dev/null; then
+              git show "${PR_BASE_SHA}:.gitleaksignore" > "${ignorefile}"
+            else
+              : > "${ignorefile}"
+            fi
+            # gitleaks 8.30.1 also reads .gitleaksignore from the scanned folder,
+            # even when --gitleaks-ignore-path points elsewhere. Replace the
+            # checkout's copy with the base commit's copy (or none). This hides
+            # nothing: the scan reads git history, not the working tree.
+            rm -f .gitleaksignore
+            if [ -s "${ignorefile}" ]; then
+              cp "${ignorefile}" .gitleaksignore
+            fi
+            # git log -p shows nothing for merge commits by default, so a secret
+            # added in a merge (conflict resolution) would go unscanned.
+            # --diff-merges=first-parent shows each merge's diff against its first
+            # parent. gitleaks splits --log-opts on spaces, so the option and the
+            # range stay in one argument.
+            args+=(--config "${config}" --gitleaks-ignore-path "${ignorefile}" --log-opts="--diff-merges=first-parent ${PR_BASE_SHA}..${PR_HEAD_SHA}")
           fi
           rc=0
           "${RUNNER_TEMP}/gitleaks-bin/gitleaks" "${args[@]}" . || rc=$?
