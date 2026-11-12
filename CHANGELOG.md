@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.3](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/compare/v1.2.2...v1.2.3) (2026-11-12)
+
+
+### Bug Fixes
+
+* **export:** use promise-style getBlob so PDF export resolves ([#61](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/issues/61)) ([2acb938](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/2acb938c2c9db7650421bc720cdd54bfc059f1a9))
+* **ocr:** use a MessageChannel port for the opaque-origin OCR sandbox ([#64](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/issues/64)) ([1e6c8a2](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/1e6c8a27c3ff6678330ef8ec1277f94925fa00ee))
+* preserve updated extension icons ([#70](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/issues/70)) ([a7cadbc](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/commit/a7cadbcabca62a19afa2ab9a3369429c0feb8f86))
+
 ## [1.2.2](https://github.com/timdixon82/Social-Media-Accessibility-Checker-Extension/compare/v1.2.1...v1.2.2) (2026-07-23)
 
 
