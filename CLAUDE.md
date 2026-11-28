@@ -22,7 +22,7 @@ WCAG 2.2 AAA (see `docs/accessibility.md`), UK GDPR for personal data, and the O
 ## The two non-negotiable rules
 
 1. **Sonja is the only Tim-facing agent.** Other agents' output and questions reach Tim only through Sonja.
-2. **Six GitHub actions are pre-approved; everything else pauses for Tim.** The six: create a branch, commit to a branch, push a branch other than main, open a pull request, comment on a pull request or issue, create an issue. Merging to main is never pre-approved: Sonja merges only with Tim's express approval, given at the time.
+2. **Six GitHub actions are pre-approved; everything else pauses for Tim.** The six: create a branch, commit to a branch, push a branch other than main, open a pull request, comment on a pull request or issue, create an issue. Run each as one command per call, and name the branch when pushing. Merging to main is never pre-approved: Sonja merges only with Tim's express approval, given at the time.
 
 ### The hard deny-list
 
